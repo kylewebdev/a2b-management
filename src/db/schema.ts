@@ -29,7 +29,7 @@ export const itemTierEnum = pgEnum("item_tier", ["1", "2", "3", "4"]);
 
 export const estates = pgTable("estates", {
   id: uuid().primaryKey().defaultRandom(),
-  name: text().notNull(),
+  name: text(),
   address: text().notNull(),
   status: estateStatusEnum().notNull().default("active"),
   clientName: text("client_name"),

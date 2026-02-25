@@ -4,22 +4,27 @@
 
 ## Current State
 
-The codebase has **foundation plumbing in place** (Phase 1 complete). What exists:
+**Phases 1–2 complete.** Estate CRUD is fully functional end-to-end. What exists:
 
-- 7 page routes (all placeholder content, no real data or forms)
+- **Estate lifecycle**: Create, list, view, inline edit, status transitions (active → resolving → closed), delete — all with persistent data in Neon
+- **API routes**: POST/GET `/api/estates`, GET/PATCH/DELETE `/api/estates/[id]` with auth, ownership checks, Zod validation, status transition enforcement
+- **Pages**: Dashboard (active estates), estate list, create form, estate detail with inline editing
+- **Shared components**: StatusBadge (color-coded per status), EstateCard (linked card with name/address, badge, item count, date)
+- **Validation**: Zod schemas shared between API and client forms; `parseUpdateEstate()` wrapper for update payloads
+- **Auth helpers**: `getAuthUserId()`, `jsonError()`, `jsonSuccess()` in `src/lib/api.ts`
+- **Data model**: Address is the primary identifier; estate name is optional (added later to help sell the estate sale). `estates.name` column is nullable.
 - Shell component (mobile bottom nav + desktop sidebar) with Clerk `<UserButton>`
 - Tailwind v4 dark theme with all brand tokens
-- Plus Jakarta Sans font, TypeScript strict mode, path aliases
 - **Database**: Drizzle ORM schema with 3 tables (estates, items, item_photos) and 3 enums, Neon HTTP client
-- **Authentication**: Clerk middleware protecting all routes, `<ClerkProvider>` with dark theme, sign-in/sign-up public routes
-- **Test infrastructure**: Vitest + jsdom + Testing Library, Clerk mocks, test factories, live DB helpers — 35 tests passing
+- **Authentication**: Clerk middleware protecting all routes, `<ClerkProvider>` with dark theme
+- **Test infrastructure**: Vitest + jsdom + Testing Library + jest-dom, Clerk mocks, test factories — **102 tests passing**
 
 What does **not** exist yet:
 
-- API routes (zero)
 - Image storage (no R2 integration)
 - AI integration (no provider adapters)
-- Any business logic, forms, or real data flow
+- Item creation or photo upload
+- Settings page functionality
 
 ---
 
@@ -121,85 +126,81 @@ Each phase builds on the last. No phase should start until the previous phase is
 
 ### 2.1 API Routes
 
-- [ ] `POST /api/estates` — create estate (validate name + address required; attach user_id from Clerk session)
-- [ ] `GET /api/estates` — list estates for authenticated user (support `?status=` filter)
-- [ ] `GET /api/estates/[id]` — get single estate (verify ownership)
-- [ ] `PATCH /api/estates/[id]` — update estate fields (name, address, client_name, notes, status)
-- [ ] `DELETE /api/estates/[id]` — delete estate (only if no items, or soft-delete)
+- [x] `POST /api/estates` — create estate (address required, name optional; attach user_id from Clerk session)
+- [x] `GET /api/estates` — list estates for authenticated user (support `?status=` filter)
+- [x] `GET /api/estates/[id]` — get single estate (verify ownership)
+- [x] `PATCH /api/estates/[id]` — update estate fields (name, address, client_name, notes, status)
+- [x] `DELETE /api/estates/[id]` — delete estate (only if no items)
 
 ### 2.2 API Route Tests
 
-- [ ] `src/app/api/estates/__tests__/route.test.ts`:
-  - **POST /api/estates**
-    - Creates estate with valid data → 201, returns estate with id
-    - Rejects missing name → 400 with validation error
-    - Rejects missing address → 400 with validation error
-    - Attaches authenticated user_id automatically
-    - Rejects unauthenticated request → 401
-  - **GET /api/estates**
-    - Returns only estates belonging to authenticated user
-    - Filters by `?status=active` correctly
-    - Returns empty array when user has no estates
-    - Does not leak other users' estates
-  - **GET /api/estates/[id]**
-    - Returns estate when user owns it
-    - Returns 404 for non-existent estate
-    - Returns 403 when user doesn't own the estate
-  - **PATCH /api/estates/[id]**
-    - Updates name, address, client_name, notes
-    - Advances status: active → resolving → closed
-    - Rejects invalid status transitions (closed → active)
-    - Returns 403 for non-owner
-  - **DELETE /api/estates/[id]**
-    - Deletes estate with no items
-    - Returns error when estate has items (or soft-deletes)
-    - Returns 403 for non-owner
+- [x] `src/app/api/estates/__tests__/route.test.ts` — 10 tests (POST: valid→201, missing name→400, missing address→400, unauth→401, attaches userId; GET: returns estates, empty array, filters by status, invalid status→400, unauth→401)
+- [x] `src/app/api/estates/[id]/__tests__/route.test.ts` — 15 tests (GET: own→200, missing→404, non-owner→403, unauth→401; PATCH: update fields, valid transitions, invalid transitions→400, non-owner→403, empty body→400; DELETE: empty→200, has items→409, non-owner→403, missing→404)
 
 ### 2.3 Estate List Page (`/estates`)
 
-- [ ] Fetch estates from API on load
-- [ ] Display as card list: name, address, status badge, item count, created date
-- [ ] Status badges use tier-style color coding: active (green), resolving (amber), closed (muted)
-- [ ] Empty state: "No estates yet. Time to start digging." with CTA to create
-- [ ] Link to create new estate
+- [x] Server Component queries DB directly (no API round-trip)
+- [x] Display as card grid: name or address as title (MapPin icon), status badge, item count (Package icon), date
+- [x] Status badges: active (green), resolving (amber), closed (muted)
+- [x] Empty state: "No estates yet. Time to start digging." with green CTA
+- [x] "New Estate" button in header
 
 ### 2.4 Create Estate Page (`/estates/new`)
 
-- [ ] Form: name (required), address (required), client name (optional), notes (optional)
-- [ ] Submit → POST to API → redirect to estate detail page
-- [ ] Validation: inline errors, required field indicators
-- [ ] Mobile-optimized form layout
+- [x] Form: address (required), estate name (optional — added later is fine), client name (optional), notes (optional)
+- [x] Client-side Zod validation with inline error messages per field
+- [x] Submit → POST to API → redirect to estate detail page
+- [x] Disabled button + "Creating..." text while in flight
+- [x] Green asterisk on address (only required field)
+- [x] `data-1p-ignore` + `autoComplete="off"` to prevent password manager interference
 
 ### 2.5 Component Tests
 
-- [ ] `src/app/estates/__tests__/estate-list.test.tsx`:
-  - Renders estate cards when data is present
-  - Shows empty state when no estates exist
-  - Status badges render correct colors per status
-- [ ] `src/app/estates/new/__tests__/create-estate.test.tsx`:
-  - Form renders all fields
-  - Submit with valid data calls API
-  - Displays validation errors for missing required fields
-  - Submit button disabled while request is in flight
+- [x] `src/components/__tests__/status-badge.test.tsx` — 6 tests (renders correct text, applies correct CSS classes per status)
+- [x] `src/components/__tests__/estate-card.test.tsx` — 7 tests (name, address, badge, item count plural/singular, link href, date)
+- [x] `src/app/estates/__tests__/estate-list.test.tsx` — 5 tests (cards render, empty state, CTA link, header button, status badges)
+- [x] `src/app/estates/new/__tests__/create-estate-form.test.tsx` — 5 tests (all fields render, validation errors, fetch called, redirect, button disabled)
 
 ### 2.6 Estate Detail Page (`/estates/[id]`)
 
-- [ ] Header: estate name, address, status badge
-- [ ] Edit button → inline editing or modal for estate fields
-- [ ] Status controls: advance estate through lifecycle (active → resolving → closed)
-- [ ] Items section (empty for now, placeholder for Phase 3)
-- [ ] Summary stats placeholder (item counts, value totals — wired up in later phases)
+- [x] Header: name or address as title (MapPin only when name present), status badge
+- [x] Metadata: clientName, notes if present
+- [x] Edit button → inline form (address first, estate name second) with `data-1p-ignore` (PATCH to API, router.refresh())
+- [x] Status advancement: "Start Resolving" / "Close Estate" with confirmation dialog (hidden when closed)
+- [x] Delete button (only shown when itemCount === 0, with confirm dialog)
+- [x] Items section placeholder: "No items yet. Grab your camera."
+- [x] Server Component: auth → query estate with item count → notFound for missing/non-owner
 
 ### 2.7 Dashboard (`/`)
 
-- [ ] Show active estates (status = active) as primary content
-- [ ] Quick-access cards: estate name, address, item count
-- [ ] "New Estate" button
-- [ ] Empty state when no active estates
+- [x] Server Component queries active estates for authenticated user
+- [x] "New Estate" button in header
+- [x] Active estates as EstateCards in responsive grid
+- [x] Empty state: "No active estates. Time to start digging."
 
-### 2.8 Deliverable
+### 2.8 Validation Layer
 
-Full estate lifecycle management. Create an estate, see it in the list, open it, edit it, change its status, delete it. All data persists in Neon. **All API and component tests pass.**
+- [x] `src/lib/validations/estate.ts` — Zod schemas shared between API and client: createEstateSchema, parseUpdateEstate
+- [x] `src/lib/validations/__tests__/estate.test.ts` — 13 tests (create: valid, missing fields, trim, empty strings, optional→null; update: partial, status enum, empty object)
+- [x] `src/lib/api.ts` — getAuthUserId, jsonError, jsonSuccess helpers
+- [x] `src/lib/__tests__/api.test.ts` — 6 tests
+
+### 2.9 Deliverable
+
+- [x] `npm test` — **102 tests pass** (9 skipped for live DB)
+- [x] `npm run build` — clean production build
+- [x] `npm run lint` — no errors
+
+> **Deviations from plan:**
+> - **Name is optional** — estates are indexed by address; name is added later to help sell the estate sale. DB column changed from `notNull` to nullable.
+> - **Address-first field order** — address is the primary identifier, shown first in all forms and as the card/detail title when no name exists.
+> - Zod v4 (installed version) doesn't support `.pipe()` chaining well; used `parseUpdateEstate()` wrapper function instead of `updateEstateSchema` for update validation
+> - Zod optional fields use `.nullable()` so JSON `null` values pass through (client sends `parsed.data` with nulls back to API)
+> - Added `@testing-library/jest-dom/vitest` to test setup for DOM matchers (toBeInTheDocument, toHaveAttribute)
+> - Pages use Server Components querying DB directly (not API routes) for data fetching — API routes only for client mutations
+> - Status transitions have confirmation dialogs ("Start Resolving? This cannot be undone.") since transitions are forward-only
+> - Status transition validation uses a whitelist map: `{ active: ["resolving"], resolving: ["closed"], closed: [] }`
+> - `data-1p-ignore` attributes on all form inputs to prevent 1Password from treating estate forms as credential forms
 
 ---
 

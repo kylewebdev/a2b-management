@@ -1,4 +1,5 @@
 import { vi, afterEach } from "vitest";
+import "@testing-library/jest-dom/vitest";
 
 // Mock @clerk/nextjs/server globally
 vi.mock("@clerk/nextjs/server", () => ({

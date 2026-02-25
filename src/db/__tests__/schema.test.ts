@@ -71,16 +71,16 @@ describe("estates table", () => {
     );
   });
 
-  it("name, address, user_id are notNull", () => {
-    const notNullCols = ["name", "address", "user_id"];
+  it("address, user_id are notNull", () => {
+    const notNullCols = ["address", "user_id"];
     for (const colName of notNullCols) {
       const col = config.columns.find((c) => c.name === colName);
       expect(col?.notNull, `${colName} should be notNull`).toBe(true);
     }
   });
 
-  it("client_name and notes are nullable", () => {
-    const nullableCols = ["client_name", "notes"];
+  it("name, client_name and notes are nullable", () => {
+    const nullableCols = ["name", "client_name", "notes"];
     for (const colName of nullableCols) {
       const col = config.columns.find((c) => c.name === colName);
       expect(col?.notNull, `${colName} should be nullable`).toBe(false);
