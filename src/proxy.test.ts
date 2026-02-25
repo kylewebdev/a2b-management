@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // Since clerkMiddleware and createRouteMatcher are mocked globally,
 // we test by importing the module and verifying how it was configured.
 
-describe("middleware", () => {
+describe("proxy", () => {
   let mockClerkMiddleware: ReturnType<typeof vi.fn>;
   let mockCreateRouteMatcher: ReturnType<typeof vi.fn>;
   let mockIsPublicRoute: ReturnType<typeof vi.fn>;
@@ -24,14 +24,14 @@ describe("middleware", () => {
   });
 
   it("exports a config with a non-empty matcher array", async () => {
-    const { config } = await import("./middleware");
+    const { config } = await import("./proxy");
     expect(config).toBeDefined();
     expect(config.matcher).toBeInstanceOf(Array);
     expect(config.matcher.length).toBeGreaterThan(0);
   });
 
   it("creates a route matcher for sign-in and sign-up", async () => {
-    await import("./middleware");
+    await import("./proxy");
     expect(mockCreateRouteMatcher).toHaveBeenCalledWith([
       "/sign-in(.*)",
       "/sign-up(.*)",
@@ -39,7 +39,7 @@ describe("middleware", () => {
   });
 
   it("calls clerkMiddleware with a handler function", async () => {
-    await import("./middleware");
+    await import("./proxy");
     expect(mockClerkMiddleware).toHaveBeenCalledWith(expect.any(Function));
   });
 
@@ -51,7 +51,7 @@ describe("middleware", () => {
     let mockProtect: ReturnType<typeof vi.fn>;
 
     beforeEach(async () => {
-      await import("./middleware");
+      await import("./proxy");
       handler = mockClerkMiddleware.mock.calls[0][0];
       mockProtect = vi.fn();
     });
