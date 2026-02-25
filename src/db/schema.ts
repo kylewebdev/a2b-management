@@ -6,6 +6,7 @@ import {
   timestamp,
   integer,
   jsonb,
+  serial,
 } from "drizzle-orm/pg-core";
 
 // ── Enums ──────────────────────────────────────────────
@@ -24,6 +25,12 @@ export const itemStatusEnum = pgEnum("item_status", [
 ]);
 
 export const itemTierEnum = pgEnum("item_tier", ["1", "2", "3", "4"]);
+
+export const aiProviderEnum = pgEnum("ai_provider", [
+  "anthropic",
+  "openai",
+  "google",
+]);
 
 // ── Tables ─────────────────────────────────────────────
 
@@ -80,4 +87,18 @@ export const itemPhotos = pgTable("item_photos", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+});
+
+export const appSettings = pgTable("app_settings", {
+  id: serial().primaryKey(),
+  aiProvider: aiProviderEnum("ai_provider").notNull().default("anthropic"),
+  aiModel: text("ai_model"),
+  apiKeyAnthropic: text("api_key_anthropic"),
+  apiKeyOpenai: text("api_key_openai"),
+  apiKeyGoogle: text("api_key_google"),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+  updatedBy: text("updated_by"),
 });
