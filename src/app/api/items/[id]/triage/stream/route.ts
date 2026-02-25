@@ -121,6 +121,8 @@ export async function GET(_request: Request, { params }: Params) {
         aiRawResponse: fullText,
         aiProvider: `${settings.aiProvider}/${provider.model}`,
         tokensUsed: usage?.totalTokens ?? null,
+        inputTokens: usage?.inputTokens ?? null,
+        outputTokens: usage?.outputTokens ?? null,
         status: "triaged",
       };
 

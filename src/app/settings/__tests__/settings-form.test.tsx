@@ -14,6 +14,7 @@ function mockSettingsResponse(overrides = {}) {
     apiKeyAnthropic: null,
     apiKeyOpenai: null,
     apiKeyGoogle: null,
+    costWarningThreshold: null,
     updatedAt: null,
     updatedBy: null,
     ...overrides,
@@ -37,6 +38,19 @@ describe("SettingsForm", () => {
 
     await waitFor(() => {
       expect(screen.getByLabelText(/ai provider/i)).toBeInTheDocument();
+    });
+  });
+
+  it("renders info banner about shared settings", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockSettingsResponse()),
+    });
+
+    render(<SettingsForm />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/these settings affect all users/i)).toBeInTheDocument();
     });
   });
 
@@ -101,6 +115,50 @@ describe("SettingsForm", () => {
 
     expect(screen.getByLabelText(/openai api key/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/anthropic api key/i)).not.toBeInTheDocument();
+  });
+
+  it("model selector is a dropdown with correct options for anthropic", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockSettingsResponse()),
+    });
+
+    render(<SettingsForm />);
+
+    await waitFor(() => {
+      const modelSelect = screen.getByLabelText(/model/i) as HTMLSelectElement;
+      expect(modelSelect.tagName).toBe("SELECT");
+    });
+
+    const modelSelect = screen.getByLabelText(/model/i) as HTMLSelectElement;
+    const options = Array.from(modelSelect.options).map((o) => o.value);
+    expect(options).toContain("claude-sonnet-4-20250514");
+    expect(options).toContain("claude-opus-4-20250514");
+    expect(options).toContain("claude-haiku-4-5-20251001");
+  });
+
+  it("switching provider updates model dropdown options", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockSettingsResponse()),
+    });
+
+    const user = userEvent.setup();
+    render(<SettingsForm />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/ai provider/i)).toBeInTheDocument();
+    });
+
+    await user.selectOptions(screen.getByLabelText(/ai provider/i), "openai");
+
+    const modelSelect = screen.getByLabelText(/model/i) as HTMLSelectElement;
+    const options = Array.from(modelSelect.options).map((o) => o.value);
+    expect(options).toContain("gpt-4o");
+    expect(options).toContain("gpt-4o-mini");
+    expect(options).toContain("gpt-4.1");
+    // Should not have anthropic models
+    expect(options).not.toContain("claude-sonnet-4-20250514");
   });
 
   it("saves settings on form submit", async () => {
@@ -189,7 +247,7 @@ describe("SettingsForm", () => {
     });
   });
 
-  it("shows model override field", async () => {
+  it("shows model dropdown with saved model selected", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve(mockSettingsResponse({ aiModel: "claude-opus-4-20250514" })),
@@ -198,8 +256,8 @@ describe("SettingsForm", () => {
     render(<SettingsForm />);
 
     await waitFor(() => {
-      const modelInput = screen.getByLabelText(/model override/i) as HTMLInputElement;
-      expect(modelInput.value).toBe("claude-opus-4-20250514");
+      const modelSelect = screen.getByLabelText(/model/i) as HTMLSelectElement;
+      expect(modelSelect.value).toBe("claude-opus-4-20250514");
     });
   });
 
@@ -210,6 +268,84 @@ describe("SettingsForm", () => {
 
     await waitFor(() => {
       expect(screen.getByText(/failed to load/i)).toBeInTheDocument();
+    });
+  });
+
+  it("test key button is disabled when no key entered", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockSettingsResponse()),
+    });
+
+    render(<SettingsForm />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/anthropic api key/i)).toBeInTheDocument();
+    });
+
+    const testBtn = screen.getByRole("button", { name: /test key/i });
+    expect(testBtn).toBeDisabled();
+  });
+
+  it("test key button triggers POST and shows success", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockSettingsResponse()),
+    });
+
+    const user = userEvent.setup();
+    render(<SettingsForm />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/anthropic api key/i)).toBeInTheDocument();
+    });
+
+    await user.type(screen.getByLabelText(/anthropic api key/i), "sk-ant-test");
+
+    // Mock test-key response
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ valid: true }),
+    });
+
+    await user.click(screen.getByRole("button", { name: /test key/i }));
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/api/settings/test-key",
+        expect.objectContaining({ method: "POST" })
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/key is valid/i)).toBeInTheDocument();
+    });
+  });
+
+  it("test key shows error on failure", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockSettingsResponse()),
+    });
+
+    const user = userEvent.setup();
+    render(<SettingsForm />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/anthropic api key/i)).toBeInTheDocument();
+    });
+
+    await user.type(screen.getByLabelText(/anthropic api key/i), "bad-key");
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ valid: false, error: "Invalid API key" }),
+    });
+
+    await user.click(screen.getByRole("button", { name: /test key/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/invalid api key/i)).toBeInTheDocument();
     });
   });
 });

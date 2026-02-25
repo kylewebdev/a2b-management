@@ -166,13 +166,13 @@ describe("PATCH /api/items/[id]", () => {
     await mockClerkUser("user_abc");
     mockItemSelect.mockResolvedValue([ITEM]);
     mockEstateSelect.mockResolvedValue([ESTATE]);
-    mockUpdateReturning.mockResolvedValue([{ ...ITEM, disposition: "sell" }]);
+    mockUpdateReturning.mockResolvedValue([{ ...ITEM, disposition: "sold_onsite", status: "resolved" }]);
 
-    const res = await PATCH(patchRequest({ disposition: "sell" }), makeParams("item-1"));
+    const res = await PATCH(patchRequest({ disposition: "sold_onsite" }), makeParams("item-1"));
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.disposition).toBe("sell");
+    expect(body.disposition).toBe("sold_onsite");
   });
 
   it("returns 404 for non-existent item", async () => {

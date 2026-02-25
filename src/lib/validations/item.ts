@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DISPOSITIONS } from "@/lib/disposition";
 
 export const MAX_PHOTOS = 5;
 export const MIN_PHOTOS = 1;
@@ -20,11 +21,11 @@ export const updateItemSchema = z.object({
     .optional()
     .transform((v) => v || null),
   disposition: z
-    .string()
-    .trim()
+    .enum(DISPOSITIONS)
     .nullable()
     .optional()
     .transform((v) => v || null),
+  status: z.enum(["routed"]).optional(),
 });
 
 export type UpdateItemInput = z.infer<typeof updateItemSchema>;

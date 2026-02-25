@@ -13,6 +13,7 @@ const DEFAULTS = {
   apiKeyAnthropic: null,
   apiKeyOpenai: null,
   apiKeyGoogle: null,
+  costWarningThreshold: null,
 };
 
 function maskKey(encrypted: string | null): string | null {
@@ -48,6 +49,7 @@ export async function GET() {
     apiKeyAnthropic: maskKey(row.apiKeyAnthropic),
     apiKeyOpenai: maskKey(row.apiKeyOpenai),
     apiKeyGoogle: maskKey(row.apiKeyGoogle),
+    costWarningThreshold: row.costWarningThreshold,
     updatedAt: row.updatedAt,
     updatedBy: row.updatedBy,
   });
@@ -87,6 +89,9 @@ export async function PUT(request: Request) {
   if (data.apiKeyGoogle !== undefined) {
     updatePayload.apiKeyGoogle = data.apiKeyGoogle ? encrypt(data.apiKeyGoogle) : null;
   }
+  if (data.costWarningThreshold !== undefined) {
+    updatePayload.costWarningThreshold = data.costWarningThreshold;
+  }
 
   // Upsert: try update first, insert if not found
   const [existing] = await db
@@ -114,6 +119,7 @@ export async function PUT(request: Request) {
     apiKeyAnthropic: maskKey(row.apiKeyAnthropic),
     apiKeyOpenai: maskKey(row.apiKeyOpenai),
     apiKeyGoogle: maskKey(row.apiKeyGoogle),
+    costWarningThreshold: row.costWarningThreshold,
     updatedAt: row.updatedAt,
     updatedBy: row.updatedBy,
   });

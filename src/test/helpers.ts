@@ -76,6 +76,7 @@ export function createTestAppSettings(overrides: Record<string, unknown> = {}) {
     apiKeyAnthropic: "encrypted:test-key",
     apiKeyOpenai: null,
     apiKeyGoogle: null,
+    costWarningThreshold: null,
     updatedAt: new Date(),
     updatedBy: "user_test123",
     ...overrides,

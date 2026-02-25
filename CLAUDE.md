@@ -46,7 +46,7 @@ _(Playwright E2E wired up in Phase 7.)_
 
 ## Build Progress
 
-Current phase: **5 — Routing & Resolution** (not started)
+Current phase: **7 — Polish & Production** (not started)
 
 See `docs/BuildPlan.md` for details.
 

@@ -3,10 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { MapPin, Pencil, Trash2, Package, Camera } from "lucide-react";
+import { MapPin, Pencil, Trash2, Package, Camera, CheckCircle } from "lucide-react";
+import { canCloseEstate, getCloseEstateStats } from "@/lib/estate-lifecycle";
 import { StatusBadge } from "@/components/status-badge";
 import { ItemCard } from "@/components/item-card";
 import { BatchTriage } from "./batch-triage";
+import { EstateSummaryPanel } from "./estate-summary";
+import { ItemFilters } from "./item-filters";
+import type { EstateSummary } from "@/lib/estate-summary";
 
 interface Estate {
   id: string;
@@ -27,6 +31,7 @@ interface ItemSummary {
   thumbnailUrl: string | null;
   aiIdentification: { title?: string } | null;
   aiValuation: { lowEstimate?: number; highEstimate?: number } | null;
+  disposition: string | null;
 }
 
 const NEXT_STATUS: Record<string, { label: string; value: string } | null> = {
@@ -35,11 +40,13 @@ const NEXT_STATUS: Record<string, { label: string; value: string } | null> = {
   closed: null,
 };
 
-export function EstateDetail({ estate, items = [], pendingItemIds = [] }: { estate: Estate; items?: ItemSummary[]; pendingItemIds?: string[] }) {
+export function EstateDetail({ estate, items = [], pendingItemIds = [], summary }: { estate: Estate; items?: ItemSummary[]; pendingItemIds?: string[]; summary?: EstateSummary }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [tierFilter, setTierFilter] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
   // Edit form state
   const [name, setName] = useState(estate.name ?? "");
@@ -91,6 +98,9 @@ export function EstateDetail({ estate, items = [], pendingItemIds = [] }: { esta
   }
 
   const nextStatus = NEXT_STATUS[estate.status];
+  const showClosePrompt =
+    estate.status === "resolving" && canCloseEstate(items);
+  const closeStats = showClosePrompt ? getCloseEstateStats(items) : null;
 
   return (
     <div className="lg:flex lg:gap-8">
@@ -226,6 +236,27 @@ export function EstateDetail({ estate, items = [], pendingItemIds = [] }: { esta
             </div>
           </div>
         )}
+
+        {/* Close estate prompt */}
+        {showClosePrompt && closeStats && (
+          <div className="mt-6 rounded-lg border border-accent/30 bg-accent/5 p-4" data-testid="close-estate-prompt">
+            <div className="flex items-center gap-2 text-sm font-medium text-accent">
+              <CheckCircle size={16} />
+              All {closeStats.totalItems} items resolved. Ready to close this estate.
+            </div>
+            {(closeStats.totalEstimatedValueLow > 0 || closeStats.totalEstimatedValueHigh > 0) && (
+              <p className="mt-1 text-xs text-text-muted">
+                Total estimated value: ${closeStats.totalEstimatedValueLow.toLocaleString()} – ${closeStats.totalEstimatedValueHigh.toLocaleString()}
+              </p>
+            )}
+            <button
+              onClick={handleStatusAdvance}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-bg transition-colors hover:bg-accent/90"
+            >
+              Close Estate
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Right column: Items */}
@@ -248,11 +279,36 @@ export function EstateDetail({ estate, items = [], pendingItemIds = [] }: { esta
           </div>
         </div>
 
+        {/* Summary */}
+        {summary && (
+          <div className="mt-3">
+            <EstateSummaryPanel summary={summary} />
+          </div>
+        )}
+
+        {/* Filters */}
+        {items.length > 0 && (
+          <div className="mt-3">
+            <ItemFilters
+              tierFilter={tierFilter}
+              statusFilter={statusFilter}
+              onTierChange={setTierFilter}
+              onStatusChange={setStatusFilter}
+            />
+          </div>
+        )}
+
         {items.length > 0 ? (
           <div className="mt-3 space-y-2">
-            {items.map((item) => (
-              <ItemCard key={item.id} {...item} />
-            ))}
+            {items
+              .filter((item) => {
+                if (tierFilter && item.tier !== tierFilter) return false;
+                if (statusFilter && item.status !== statusFilter) return false;
+                return true;
+              })
+              .map((item) => (
+                <ItemCard key={item.id} {...item} />
+              ))}
           </div>
         ) : (
           <div className="mt-3 flex flex-col items-center rounded-lg border border-dashed border-border py-10 text-center">

@@ -4,6 +4,7 @@ import { estates, items, itemPhotos } from "@/db/schema";
 import { getAuthUserId, jsonError, jsonSuccess } from "@/lib/api";
 import { getSignedViewUrl, deleteFiles } from "@/lib/r2";
 import { updateItemSchema } from "@/lib/validations/item";
+import { isValidItemTransition, resolveStatusOnDisposition } from "@/lib/disposition";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -74,9 +75,45 @@ export async function PATCH(request: Request, { params }: Params) {
     return jsonError({ error: "Validation failed", details: parsed.error.issues }, 400);
   }
 
+  const { item } = result;
+  const currentStatus = item.status as "pending" | "triaged" | "routed" | "resolved";
+
+  // Build update payload explicitly
+  const update: Record<string, unknown> = {};
+
+  if (parsed.data.notes !== undefined) {
+    update.notes = parsed.data.notes;
+  }
+
+  // Handle disposition
+  if (parsed.data.disposition !== undefined) {
+    if (parsed.data.disposition !== null) {
+      // Setting a disposition — reject if pending
+      if (currentStatus === "pending") {
+        return jsonError("Item must be triaged before setting disposition", 400);
+      }
+      update.disposition = parsed.data.disposition;
+      const newStatus = resolveStatusOnDisposition(currentStatus);
+      if (newStatus) {
+        update.status = newStatus;
+      }
+    } else {
+      // Clearing disposition (null)
+      update.disposition = null;
+    }
+  }
+
+  // Handle explicit status transition (only "routed" is accepted by schema)
+  if (parsed.data.status) {
+    if (!isValidItemTransition(currentStatus, parsed.data.status)) {
+      return jsonError(`Invalid transition: ${currentStatus} → ${parsed.data.status}`, 400);
+    }
+    update.status = parsed.data.status;
+  }
+
   const [updated] = await db
     .update(items)
-    .set(parsed.data)
+    .set(update)
     .where(eq(items.id, id))
     .returning();
 

@@ -63,6 +63,8 @@ export const items = pgTable("items", {
   aiRawResponse: text("ai_raw_response"),
   aiProvider: text("ai_provider"),
   tokensUsed: integer("tokens_used"),
+  inputTokens: integer("input_tokens"),
+  outputTokens: integer("output_tokens"),
   disposition: text(),
   notes: text(),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -96,6 +98,7 @@ export const appSettings = pgTable("app_settings", {
   apiKeyAnthropic: text("api_key_anthropic"),
   apiKeyOpenai: text("api_key_openai"),
   apiKeyGoogle: text("api_key_google"),
+  costWarningThreshold: integer("cost_warning_threshold"),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow()

@@ -10,6 +10,7 @@ const defaultProps = {
   thumbnailUrl: "https://example.com/photo.jpg",
   aiIdentification: null as { title?: string } | null,
   aiValuation: null as { lowEstimate?: number; highEstimate?: number } | null,
+  disposition: null as string | null,
 };
 
 describe("ItemCard", () => {
@@ -86,5 +87,39 @@ describe("ItemCard", () => {
       />
     );
     expect(screen.getByText("$1.5k – $3k")).toBeInTheDocument();
+  });
+
+  it("applies tier-colored left border when tier is set", () => {
+    render(<ItemCard {...defaultProps} tier="2" />);
+    const link = screen.getByRole("link");
+    expect(link.className).toMatch(/border-l-tier-2/);
+  });
+
+  it("does not apply tier border when tier is null", () => {
+    render(<ItemCard {...defaultProps} tier={null} />);
+    const link = screen.getByRole("link");
+    expect(link.className).not.toMatch(/border-l-tier/);
+  });
+
+  it("shows disposition label instead of status when resolved", () => {
+    render(
+      <ItemCard {...defaultProps} status="resolved" disposition="sold_onsite" />
+    );
+    expect(screen.getByText("Sold Onsite")).toBeInTheDocument();
+    expect(screen.queryByText("Resolved")).not.toBeInTheDocument();
+  });
+
+  it("shows status label when resolved but no disposition", () => {
+    render(
+      <ItemCard {...defaultProps} status="resolved" disposition={null} />
+    );
+    expect(screen.getByText("Resolved")).toBeInTheDocument();
+  });
+
+  it("shows status label for non-resolved items with disposition", () => {
+    render(
+      <ItemCard {...defaultProps} status="routed" disposition="donated" />
+    );
+    expect(screen.getByText("Routed")).toBeInTheDocument();
   });
 });

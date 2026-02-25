@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, Loader2, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { TriageDisplay } from "./triage-display";
+import { RoutingGuidance } from "./routing-guidance";
+import { DispositionSelector } from "./disposition-selector";
 
 interface Photo {
   id: string;
@@ -135,13 +137,22 @@ export function ItemDetail({ item }: { item: Item }) {
             }}
           />
 
+          {/* Routing Guidance */}
+          {item.tier && (
+            <RoutingGuidance
+              itemId={item.id}
+              status={item.status}
+              tier={item.tier}
+              valuation={item.aiValuation}
+            />
+          )}
+
           {/* Disposition */}
-          <div className="mt-4">
-            <h2 className="text-xs font-medium text-text-muted">Disposition</h2>
-            <p className="mt-1 text-sm text-text-secondary">
-              {item.disposition || "Not yet decided"}
-            </p>
-          </div>
+          <DispositionSelector
+            itemId={item.id}
+            status={item.status}
+            disposition={item.disposition}
+          />
 
           {/* Notes */}
           <div className="mt-4">

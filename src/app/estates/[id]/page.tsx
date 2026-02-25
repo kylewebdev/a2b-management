@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { estates, items, itemPhotos } from "@/db/schema";
 import { getSignedViewUrl } from "@/lib/r2";
 import { EstateDetail } from "./estate-detail";
+import { computeEstateSummary } from "@/lib/estate-summary";
 
 export default async function EstateDetailPage({
   params,
@@ -77,9 +78,12 @@ export default async function EstateDetailPage({
         aiValuation: aiValuation
           ? { lowEstimate: aiValuation.lowEstimate, highEstimate: aiValuation.highEstimate }
           : null,
+        disposition: item.disposition,
       };
     })
   );
+
+  const summary = computeEstateSummary(itemsWithThumbnails);
 
   return (
     <Shell>
@@ -91,6 +95,7 @@ export default async function EstateDetailPage({
           }}
           items={itemsWithThumbnails}
           pendingItemIds={estateItems.filter((i) => i.status === "pending").map((i) => i.id)}
+          summary={summary}
         />
       </div>
     </Shell>

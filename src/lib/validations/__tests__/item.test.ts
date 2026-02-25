@@ -37,9 +37,21 @@ describe("updateItemSchema", () => {
   });
 
   it("accepts valid disposition update", () => {
-    const result = updateItemSchema.safeParse({ disposition: "sell" });
+    const result = updateItemSchema.safeParse({ disposition: "sold_onsite" });
     expect(result.success).toBe(true);
-    if (result.success) expect(result.data.disposition).toBe("sell");
+    if (result.success) expect(result.data.disposition).toBe("sold_onsite");
+  });
+
+  it("rejects invalid disposition values", () => {
+    const result = updateItemSchema.safeParse({ disposition: "sell" });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts all valid disposition values", () => {
+    for (const d of ["sold_onsite", "bulk_lot", "donated", "trashed"]) {
+      const result = updateItemSchema.safeParse({ disposition: d });
+      expect(result.success).toBe(true);
+    }
   });
 
   it("trims whitespace from notes", () => {
@@ -60,12 +72,34 @@ describe("updateItemSchema", () => {
     if (result.success) expect(result.data.notes).toBeNull();
   });
 
+  it("accepts null disposition (clearing)", () => {
+    const result = updateItemSchema.safeParse({ disposition: null });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.disposition).toBeNull();
+  });
+
   it("accepts both fields together", () => {
-    const result = updateItemSchema.safeParse({ notes: "Nice chair", disposition: "keep" });
+    const result = updateItemSchema.safeParse({ notes: "Nice chair", disposition: "donated" });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.notes).toBe("Nice chair");
-      expect(result.data.disposition).toBe("keep");
+      expect(result.data.disposition).toBe("donated");
     }
+  });
+
+  it("accepts status: routed", () => {
+    const result = updateItemSchema.safeParse({ status: "routed" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.status).toBe("routed");
+  });
+
+  it("rejects status: resolved (only settable via disposition)", () => {
+    const result = updateItemSchema.safeParse({ status: "resolved" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects status: pending", () => {
+    const result = updateItemSchema.safeParse({ status: "pending" });
+    expect(result.success).toBe(false);
   });
 });

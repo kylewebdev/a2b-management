@@ -7,10 +7,20 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 
-// Mock TriageDisplay since it's tested separately
+// Mock child components since they're tested separately
 vi.mock("../triage-display", () => ({
   TriageDisplay: ({ itemStatus }: { itemStatus: string }) => (
     <div data-testid="triage-display">Triage: {itemStatus}</div>
+  ),
+}));
+
+vi.mock("../routing-guidance", () => ({
+  RoutingGuidance: () => <div data-testid="routing-guidance">Routing Guidance</div>,
+}));
+
+vi.mock("../disposition-selector", () => ({
+  DispositionSelector: ({ status }: { status: string }) => (
+    <div data-testid="disposition-selector">Disposition: {status}</div>
   ),
 }));
 
@@ -79,9 +89,9 @@ describe("ItemDetail", () => {
     expect(screen.getByText("Triage: triaged")).toBeInTheDocument();
   });
 
-  it("renders disposition placeholder when not set", () => {
+  it("renders DispositionSelector component", () => {
     render(<ItemDetail item={baseItem} />);
-    expect(screen.getByText("Not yet decided")).toBeInTheDocument();
+    expect(screen.getByTestId("disposition-selector")).toBeInTheDocument();
   });
 
   it("delegates tier display to TriageDisplay (no badges row)", () => {
