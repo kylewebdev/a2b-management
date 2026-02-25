@@ -4,27 +4,29 @@
 
 ## Current State
 
-**Phases 1–2 complete.** Estate CRUD is fully functional end-to-end. What exists:
+**Phases 1–4 complete.** Full AI triage pipeline is functional end-to-end. What exists:
 
 - **Estate lifecycle**: Create, list, view, inline edit, status transitions (active → resolving → closed), delete — all with persistent data in Neon
-- **API routes**: POST/GET `/api/estates`, GET/PATCH/DELETE `/api/estates/[id]` with auth, ownership checks, Zod validation, status transition enforcement
-- **Pages**: Dashboard (active estates), estate list, create form, estate detail with inline editing
-- **Shared components**: StatusBadge (color-coded per status), EstateCard (linked card with name/address, badge, item count, date)
-- **Validation**: Zod schemas shared between API and client forms; `parseUpdateEstate()` wrapper for update payloads
+- **API routes**: POST/GET `/api/estates`, GET/PATCH/DELETE `/api/estates/[id]`, POST/GET `/api/estates/[id]/items`, GET/PATCH/DELETE `/api/items/[id]`, POST `/api/items/[id]/triage`, GET `/api/items/[id]/triage/stream`, GET/PUT `/api/settings` — all with auth, ownership checks, Zod validation
+- **Pages**: Dashboard (active estates), estate list (sorted by status: active → resolving → closed), create form, estate detail (two-column on lg+), item detail (two-column on lg+), upload, settings
+- **Item & photo pipeline**: Multi-photo upload (1–5 per item), client-side HEIC→JPEG conversion, R2 storage with signed URLs, item cards as horizontal list rows with tier/valuation preview
+- **AI triage engine**: Multi-provider support (Anthropic, OpenAI, Google), SSE streaming, structured triage results (identification, tier, valuation, comps, listing guidance), batch triage
+- **App settings**: Provider/model selection, encrypted API key storage, settings API
+- **Shared components**: StatusBadge, TierBadge, EstateCard, ItemCard (list row), Shell (responsive nav)
+- **Layout**: Desktop-optimized widths (max-w-6xl for detail pages, max-w-4xl for upload), two-column layouts on lg+ for estate detail and item detail
+- **Validation**: Zod schemas shared between API and client forms
 - **Auth helpers**: `getAuthUserId()`, `jsonError()`, `jsonSuccess()` in `src/lib/api.ts`
-- **Data model**: Address is the primary identifier; estate name is optional (added later to help sell the estate sale). `estates.name` column is nullable.
+- **Data model**: Address is the primary identifier; estate name is optional. 4 tables (estates, items, item_photos, app_settings), 4 enums.
 - Shell component (mobile bottom nav + desktop sidebar) with Clerk `<UserButton>`
 - Tailwind v4 dark theme with all brand tokens
-- **Database**: Drizzle ORM schema with 3 tables (estates, items, item_photos) and 3 enums, Neon HTTP client
 - **Authentication**: Clerk middleware protecting all routes, `<ClerkProvider>` with dark theme
-- **Test infrastructure**: Vitest + jsdom + Testing Library + jest-dom, Clerk mocks, test factories — **102 tests passing**
+- **Test infrastructure**: Vitest + jsdom + Testing Library + jest-dom, Clerk mocks, test factories — **305 tests passing**
 
 What does **not** exist yet:
 
-- Image storage (no R2 integration)
-- AI integration (no provider adapters)
-- Item creation or photo upload
-- Settings page functionality
+- Disposition tracking and item resolution workflow (Phase 5)
+- Settings page UI polish and cost/token tracking (Phase 6)
+- E2E tests, loading skeletons, error boundaries, mobile UX refinement (Phase 7)
 
 ---
 
@@ -338,53 +340,25 @@ End-to-end photo workflow: navigate to estate → tap Upload Photos → select p
 
 ### 4.1 AI Provider Interface
 
-- [ ] Create `src/lib/ai/types.ts` — shared types:
-  - `TriageRequest` — photos (as base64 or URLs), estate context, system prompt
-  - `TriageResult` — identification, tier, confidence, value range, comps, listing guidance
-  - `AIProvider` interface — `triage(request): AsyncIterable<string>` for streaming
-- [ ] Create `src/lib/ai/prompt.ts` — system prompt derived from Project.md principles (identification, tier classification, valuation, comps, confidence, additional photo requests, listing guidance for tier 3+)
+- [x] Create `src/lib/ai/types.ts` — shared types: `TriageRequest`, `TriageResult`, `TriageUsage`, `AIProvider` interface
+- [x] Create `src/lib/ai/prompt.ts` — system prompt derived from Project.md principles (identification, tier classification, valuation, comps, confidence, additional photo requests, listing guidance for tier 3+)
+- [x] Create `src/lib/ai/parse-triage.ts` — `parseTriageResult()` with Zod validation + regex fallback
 
 ### 4.2 Provider Adapters
 
-- [ ] Create `src/lib/ai/providers/anthropic.ts` — Claude adapter (vision API with streaming)
-- [ ] Create `src/lib/ai/providers/openai.ts` — GPT-4o adapter (vision API with streaming)
-- [ ] Create `src/lib/ai/providers/google.ts` — Gemini adapter (vision API with streaming)
-- [ ] Create `src/lib/ai/index.ts` — factory function: `getProvider(name, apiKey, model) → AIProvider`
-- [ ] Each adapter:
-  - Accepts photos as base64-encoded images
-  - Sends standardized system prompt + photos
-  - Returns async iterable of text chunks (streaming)
-  - Reports token usage after completion
+- [x] Create `src/lib/ai/providers/anthropic.ts` — Claude adapter (vision API with streaming via `@anthropic-ai/sdk`)
+- [x] Create `src/lib/ai/providers/openai.ts` — GPT-4o adapter (vision API with streaming)
+- [x] Create `src/lib/ai/providers/google.ts` — Gemini adapter (vision API with streaming)
+- [x] Create `src/lib/ai/index.ts` — factory function: `getProvider(name, apiKey, model) → AIProvider`
 
 ### 4.3 AI Provider Tests
 
-- [ ] `src/lib/ai/__tests__/prompt.test.ts`:
-  - System prompt includes all required sections (identification, tier, valuation, comps, confidence, listing guidance)
-  - Prompt is under token limit for all providers
-  - Estate context is correctly interpolated into prompt
-- [ ] `src/lib/ai/__tests__/provider-factory.test.ts`:
-  - `getProvider("anthropic", key, model)` returns Anthropic adapter
-  - `getProvider("openai", key, model)` returns OpenAI adapter
-  - `getProvider("google", key, model)` returns Google adapter
-  - Throws on unknown provider name
-  - Throws on missing API key
-- [ ] `src/lib/ai/providers/__tests__/anthropic.test.ts`:
-  - Sends correct request format to Claude API (MSW mock)
-  - Streams response chunks as async iterable
-  - Parses token usage from response
-  - Handles API errors (401 invalid key, 429 rate limit, 500 server error)
-  - Handles network timeout
-- [ ] `src/lib/ai/providers/__tests__/openai.test.ts`:
-  - Same test pattern as Anthropic adapter
-- [ ] `src/lib/ai/providers/__tests__/google.test.ts`:
-  - Same test pattern as Anthropic adapter
-- [ ] `src/lib/ai/__tests__/parse-triage.test.ts`:
-  - Parses well-formed AI response into structured `TriageResult`
-  - Extracts tier classification (1-4) correctly
-  - Extracts value range (low, high)
-  - Extracts confidence level
-  - Handles malformed response gracefully (returns partial result + raw text)
-  - Handles response with missing sections (e.g., no comps for Tier 1 item)
+- [x] `src/lib/ai/__tests__/prompt.test.ts` (7 tests)
+- [x] `src/lib/ai/__tests__/parse-triage.test.ts` (9 tests)
+- [x] `src/lib/ai/__tests__/provider-factory.test.ts` (5 tests)
+- [x] `src/lib/ai/providers/__tests__/anthropic.test.ts` (6 tests)
+- [x] `src/lib/ai/providers/__tests__/openai.test.ts` (6 tests)
+- [x] `src/lib/ai/providers/__tests__/google.test.ts` (6 tests)
 
 ### 4.4 Two-Tier Settings Architecture
 
@@ -397,99 +371,59 @@ Phase 4 builds the **app-level settings** needed for AI triage to work. The full
 
 ### 4.5 App Settings Storage
 
-- [ ] Add `app_settings` table to `src/db/schema.ts` — singleton row pattern (single row, upsert on write):
-  - `id` (integer, primary key, always `1`)
-  - `ai_provider` (enum: anthropic/openai/google, default: anthropic)
-  - `ai_model` (string — specific model ID, nullable)
-  - `api_key_anthropic` (encrypted string, nullable)
-  - `api_key_openai` (encrypted string, nullable)
-  - `api_key_google` (encrypted string, nullable)
-  - `updated_at` (timestamp)
-  - `updated_by` (text — Clerk user ID of who last changed settings)
-- [ ] Create `src/lib/crypto.ts` — encrypt/decrypt helpers for API keys (AES-256-GCM, key from `ENCRYPTION_SECRET` env var)
-- [ ] `GET /api/settings` — return current app settings (API keys masked, e.g., `sk-...XYZ`)
-- [ ] `PUT /api/settings` — upsert app settings (provider, model, API keys)
-- [ ] API key encryption: encrypt at rest in DB, decrypt only server-side when making AI calls
+- [x] Add `app_settings` table to `src/db/schema.ts` — singleton row pattern with `aiProviderEnum`
+- [x] Create `src/lib/crypto.ts` — AES-256-GCM encrypt/decrypt/maskApiKey using `ENCRYPTION_SECRET` env var
+- [x] Create `src/lib/validations/settings.ts` — Zod schema for PUT body
+- [x] `GET /api/settings` — return current app settings (API keys masked)
+- [x] `PUT /api/settings` — upsert app settings (provider, model, API keys encrypted at rest)
 
 ### 4.6 Settings API Tests
 
-- [ ] `src/lib/__tests__/crypto.test.ts`:
-  - Encrypt → decrypt round-trip returns original value
-  - Encrypted value is not plaintext
-  - Different inputs produce different ciphertext
-  - Decrypt with wrong secret throws
-- [ ] `src/app/api/settings/__tests__/route.test.ts`:
-  - **GET** returns provider and model, API keys masked (e.g., `sk-...XYZ`)
-  - **GET** returns defaults when no settings saved yet (first run)
-  - **PUT** saves provider selection
-  - **PUT** saves and encrypts API key
-  - **PUT** rejects invalid provider name
-  - **PUT** records `updated_by` with the current user's Clerk ID
-  - Encrypted key in DB does not match plaintext input
-  - Decrypted key matches original input (round-trip encryption test)
+- [x] `src/lib/__tests__/crypto.test.ts` (8 tests — round-trip, not-plaintext, different ciphertext, random IV, wrong-secret-throws, missing-secret-throws, mask format)
+- [x] `src/app/api/settings/__tests__/route.test.ts` (10 tests — GET/PUT with auth, masking, defaults, upsert, validation)
 
 ### 4.7 Triage API with SSE
 
-- [ ] `POST /api/items/[id]/triage` — trigger triage:
-  - Load item photos from R2
-  - Load app settings from DB (provider, model, decrypt API key)
-  - Call the appropriate provider adapter
-  - Return immediately with 202 Accepted
-- [ ] `GET /api/items/[id]/triage/stream` — SSE endpoint:
-  - Open SSE connection
-  - Stream AI response tokens as they arrive
-  - On completion: parse structured result, update item record (tier, ai_identification, ai_valuation, ai_raw_response, ai_provider, tokens_used, status → triaged)
-  - Close SSE connection
+- [x] `POST /api/items/[id]/triage` — validates item has photos + settings configured, returns 202
+- [x] `GET /api/items/[id]/triage/stream` — SSE endpoint: fetches photos from R2, calls AI provider, streams chunks, parses result, updates item in DB
+- [x] `src/lib/sse.ts` — `createSSEStream()` + `sseResponse()` helpers
+- [x] `src/lib/r2.ts` — added `getFileBuffer()` for downloading photos from R2
 
 ### 4.8 Triage API Tests
 
-- [ ] `src/app/api/items/[id]/triage/__tests__/route.test.ts`:
-  - **POST** triggers triage, returns 202
-  - Rejects item with no photos → 400
-  - Rejects when no app settings / API key configured → 400 with clear message
-  - Rejects non-owned item → 403
-  - Item status updates to `triaged` after completion
-  - Item record populated: tier, ai_identification, ai_valuation, ai_raw_response, tokens_used
-- [ ] `src/app/api/items/[id]/triage/__tests__/stream.test.ts`:
-  - SSE connection opens with correct headers (`Content-Type: text/event-stream`)
-  - Streams chunks in SSE format (`data: ...\n\n`)
-  - Sends `[DONE]` event on completion
-  - Handles provider error mid-stream (sends error event, closes connection)
+- [x] `src/app/api/items/[id]/triage/__tests__/route.test.ts` (7 tests — 202 accepted, no photos, no settings, no key, 404/403/401)
+- [x] `src/app/api/items/[id]/triage/stream/__tests__/route.test.ts` (6 tests — SSE headers, chunk streaming, complete event, error event, DB update, 404/401)
 
 ### 4.9 Triage UI
 
-- [ ] After upload, auto-trigger triage (or manual "Triage" button)
-- [ ] Item detail page: real-time streaming text area showing AI response as it arrives
-- [ ] On completion: structured display of:
-  - Identification (what it is)
-  - Tier badge (color-coded)
-  - Confidence indicator
-  - Value range
-  - Comparable sales
-  - Additional photo requests (if any)
-  - Listing guidance (tier 3+ only)
-- [ ] Upload page: after uploading photos, show streaming triage inline so operator doesn't need to navigate away
+- [x] Manual "Triage" button on item detail (accent green, Sparkles icon)
+- [x] `src/lib/hooks/use-triage-stream.ts` — React hook managing POST trigger + SSE consumption (states: idle → starting → streaming → complete | error)
+- [x] `src/app/estates/[id]/items/[itemId]/triage-display.tsx` — client component: triage button, streaming text area, structured result display (tier badge, value range, identification, comps, additional photo requests, listing guidance, sleeper alert), error with retry, re-triage button
+- [x] Integrated `<TriageDisplay>` into `item-detail.tsx` (replaced placeholder sections)
 
 ### 4.10 Triage UI Tests
 
-- [ ] `src/app/estates/[id]/items/[itemId]/__tests__/triage-display.test.tsx`:
-  - Shows "Triage" button for pending items
-  - Triage button triggers API call
-  - Streaming text renders incrementally (simulate SSE with mock)
-  - On completion, structured result displays: tier badge, value range, identification
-  - Tier badge shows correct color for each tier (1-4)
-  - "Request more photos" section appears when AI requests them
-  - Listing guidance section appears only for tier 3+
+- [x] `src/app/estates/[id]/items/[itemId]/__tests__/triage-display.test.tsx` (10 tests — button, trigger, starting state, streaming, error+retry, complete result, existing result, listing guidance, additional photos)
+- [x] Updated `src/app/estates/[id]/items/[itemId]/__tests__/item-detail.test.tsx` (10 tests — now mocks TriageDisplay)
 
 ### 4.11 Batch Triage
 
-- [ ] Support triggering triage on multiple items sequentially
-- [ ] Estate detail: "Triage All Pending" button that processes untriaged items in queue
-- [ ] Progress indicator: "Triaging item 3 of 12..."
+- [x] `src/app/estates/[id]/batch-triage.tsx` — "Triage All Pending" button, sequential processing with progress indicator, error resilience, completion summary + router.refresh()
+- [x] Integrated `<BatchTriage>` into `estate-detail.tsx` (items section header)
+- [x] `src/app/estates/[id]/page.tsx` — passes `pendingItemIds` to client component
+- [x] `src/app/estates/[id]/__tests__/batch-triage.test.tsx` (7 tests — button display, empty state, progress, success summary, error resilience, SSE errors, multi-item batch)
 
 ### 4.12 Deliverable
 
-Upload photos → AI analyzes them → results stream in real-time → item gets tier classification, identification, and valuation. Works with at least one AI provider (Anthropic Claude recommended as primary). **All provider, parsing, API, SSE, and component tests pass.**
+End-to-end AI triage workflow: configure API key in settings → upload photos → tap "Triage" → see streaming AI response → item gets tier/identification/valuation → estate detail shows "Triage All Pending" for batch processing. **292 tests passing (87 new), clean build, no lint errors.**
+
+> **Deviations from plan:**
+> - **`@anthropic-ai/sdk`** — the `anthropic` npm package is a stub; the real SDK is `@anthropic-ai/sdk`
+> - **`vi.hoisted()`** — needed for mock functions used inside `vi.mock()` factories in SSE stream tests (Vitest hoists `vi.mock` calls above variable declarations)
+> - **Table-aware mock routing** — SSE stream tests use separate mock functions per table (mockItemSelect, mockEstateSelect, etc.) since the route queries 4 different tables
+> - **Triage is manual only** — no auto-trigger after upload (saves API tokens, avoids issues when keys aren't configured). Per plan decision.
+> - **Upload page inline triage** deferred — triage happens from item detail page. Can add to upload flow in Phase 7 polish if desired.
+> - **`app_settings.id`** uses `serial()` primary key (auto-increment) instead of fixed integer=1 literal; singleton enforced by always querying/upserting id=1
 
 ---
 

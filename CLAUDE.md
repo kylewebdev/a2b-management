@@ -8,7 +8,7 @@ Read `docs/` for product spec, architecture, and brand guidelines.
 
 ## Stack
 
-Next.js (App Router), Drizzle ORM, Neon Postgres, Clerk auth, Cloudflare R2, Vercel
+Next.js (App Router), Drizzle ORM, Neon Postgres, Clerk auth, Cloudflare R2, Vercel, @anthropic-ai/sdk, openai, @google/generative-ai
 
 ## Commands
 
@@ -46,7 +46,7 @@ _(Playwright E2E wired up in Phase 7.)_
 
 ## Build Progress
 
-Current phase: **4 — AI Triage Engine** (not started)
+Current phase: **5 — Routing & Resolution** (not started)
 
 See `docs/BuildPlan.md` for details.
 
@@ -54,6 +54,6 @@ See `docs/BuildPlan.md` for details.
 
 When you finish a phase (all checklist items done and deliverable confirmed), do these three things before starting the next phase:
 
-1. **Update `docs/BuildPlan.md`** — Check off completed items. Add notes on any deviations, decisions made, or tasks that turned out unnecessary. If the next phase needs adjustments based on what you learned, revise it now.
-2. **Update this file's "Build Progress" and "Current State" section** — Bump the current phase. Add or revise any new commands, dependencies, corrections, or patterns that future sessions need to know.
+1. **Update `docs/BuildPlan.md`** — Check off completed items. Add notes on any deviations, decisions made, or tasks that turned out unnecessary. If the next phase needs adjustments based on what you learned, revise it now. Also update the "Current State" section.
+2. **Update this file's "Build Progress"** — Bump the current phase. Add or revise any new commands, dependencies, corrections, or patterns that future sessions need to know.
 3. **Tell the user** — Summarize what shipped, what changed from the plan, and what's next.

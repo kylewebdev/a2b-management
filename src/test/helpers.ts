@@ -66,6 +66,23 @@ export function createMockFile(
 }
 
 /**
+ * Factory: create test app settings.
+ */
+export function createTestAppSettings(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 1,
+    aiProvider: "anthropic" as const,
+    aiModel: "claude-sonnet-4-20250514",
+    apiKeyAnthropic: "encrypted:test-key",
+    apiKeyOpenai: null,
+    apiKeyGoogle: null,
+    updatedAt: new Date(),
+    updatedBy: "user_test123",
+    ...overrides,
+  };
+}
+
+/**
  * Reset the factory counter between suites if needed.
  */
 export function resetFactoryCounter() {
