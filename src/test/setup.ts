@@ -8,6 +8,13 @@ vi.mock("@clerk/nextjs/server", () => ({
   createRouteMatcher: vi.fn(),
 }));
 
+// Mock toast globally so components that call useToast() work without ToastProvider
+vi.mock("@/components/toast", () => ({
+  useToast: () => ({ addToast: vi.fn(), removeToast: vi.fn(), toasts: [] }),
+  ToastProvider: ({ children }: { children: React.ReactNode }) => children,
+  ToastContainer: () => null,
+}));
+
 // Clean up mocks between tests
 afterEach(() => {
   vi.restoreAllMocks();
