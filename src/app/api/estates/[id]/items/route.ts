@@ -1,9 +1,10 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { estates, items, itemPhotos } from "@/db/schema";
 import { getAuthUserId, jsonError, jsonSuccess } from "@/lib/api";
 import { uploadFile, generateR2Key, getSignedViewUrl, MAX_FILE_SIZE } from "@/lib/r2";
 import { MAX_PHOTOS, MIN_PHOTOS, ALLOWED_MIME_TYPES } from "@/lib/validations/item";
+import { parseCursor, encodeCursor, DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -94,7 +95,7 @@ export async function POST(request: Request, { params }: Params) {
   return jsonSuccess({ ...item, photos: photosWithUrls }, 201);
 }
 
-export async function GET(_request: Request, { params }: Params) {
+export async function GET(request: Request, { params }: Params) {
   const userId = await getAuthUserId();
   if (!userId) return jsonError("Unauthorized", 401);
 
@@ -109,16 +110,36 @@ export async function GET(_request: Request, { params }: Params) {
   if (!estate) return jsonError("Not found", 404);
   if (estate.userId !== userId) return jsonError("Forbidden", 403);
 
-  // Get all items for this estate
-  const estateItems = await db
-    .select()
-    .from(items)
-    .where(eq(items.estateId, estateId))
-    .orderBy(desc(items.createdAt));
+  // Parse cursor for pagination
+  const url = new URL(request.url);
+  const cursorParam = url.searchParams.get("cursor");
+  const cursorDate = cursorParam ? parseCursor(cursorParam) : null;
+  const queryLimit = DEFAULT_PAGE_SIZE + 1;
+
+  // Get items with cursor-based pagination
+  let estateItems;
+  if (cursorDate) {
+    estateItems = await db
+      .select()
+      .from(items)
+      .where(sql`${items.estateId} = ${estateId} AND ${items.createdAt} < ${cursorDate}`)
+      .orderBy(desc(items.createdAt))
+      .limit(queryLimit);
+  } else {
+    estateItems = await db
+      .select()
+      .from(items)
+      .where(eq(items.estateId, estateId))
+      .orderBy(desc(items.createdAt))
+      .limit(queryLimit);
+  }
+
+  const hasMore = estateItems.length > DEFAULT_PAGE_SIZE;
+  const paginatedItems = hasMore ? estateItems.slice(0, DEFAULT_PAGE_SIZE) : estateItems;
 
   // Get first photo for each item (thumbnail)
   const itemsWithThumbnails = await Promise.all(
-    estateItems.map(async (item) => {
+    paginatedItems.map(async (item) => {
       const [firstPhoto] = await db
         .select()
         .from(itemPhotos)
@@ -128,12 +149,27 @@ export async function GET(_request: Request, { params }: Params) {
 
       let thumbnailUrl: string | null = null;
       if (firstPhoto) {
-        thumbnailUrl = await getSignedViewUrl(firstPhoto.r2Key);
+        try {
+          thumbnailUrl = await getSignedViewUrl(firstPhoto.r2Key);
+        } catch {
+          // R2 env vars may be missing — fall back gracefully
+        }
       }
 
-      return { ...item, thumbnailUrl };
+      return {
+        id: item.id,
+        estateId: item.estateId,
+        tier: item.tier,
+        status: item.status,
+        thumbnailUrl,
+        aiIdentification: item.aiIdentification as { title?: string } | null,
+        aiValuation: item.aiValuation as { lowEstimate?: number; highEstimate?: number } | null,
+        disposition: item.disposition,
+      };
     })
   );
 
-  return jsonSuccess(itemsWithThumbnails);
+  const nextCursor = hasMore ? encodeCursor(paginatedItems[paginatedItems.length - 1].createdAt) : null;
+
+  return jsonSuccess({ items: itemsWithThumbnails, nextCursor });
 }

@@ -7,6 +7,7 @@ import {
   integer,
   jsonb,
   serial,
+  index,
 } from "drizzle-orm/pg-core";
 
 // ── Enums ──────────────────────────────────────────────
@@ -49,7 +50,10 @@ export const estates = pgTable("estates", {
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
-});
+}, (table) => [
+  index("estates_user_id_idx").on(table.userId),
+  index("estates_user_id_status_idx").on(table.userId, table.status),
+]);
 
 export const items = pgTable("items", {
   id: uuid().primaryKey().defaultRandom(),
@@ -74,7 +78,11 @@ export const items = pgTable("items", {
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
-});
+}, (table) => [
+  index("items_estate_id_idx").on(table.estateId),
+  index("items_estate_id_status_idx").on(table.estateId, table.status),
+  index("items_estate_id_tier_idx").on(table.estateId, table.tier),
+]);
 
 export const itemPhotos = pgTable("item_photos", {
   id: uuid().primaryKey().defaultRandom(),
@@ -89,7 +97,9 @@ export const itemPhotos = pgTable("item_photos", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("item_photos_item_id_sort_order_idx").on(table.itemId, table.sortOrder),
+]);
 
 export const appSettings = pgTable("app_settings", {
   id: serial().primaryKey(),

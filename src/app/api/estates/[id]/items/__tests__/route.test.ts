@@ -30,7 +30,9 @@ vi.mock("@/db", () => ({
         if (table === items) {
           return {
             where: () => ({
-              orderBy: () => mockItemsSelect(),
+              orderBy: () => ({
+                limit: () => mockItemsSelect(),
+              }),
             }),
           };
         }
@@ -255,9 +257,9 @@ describe("GET /api/estates/[id]/items", () => {
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body).toHaveLength(1);
-    expect(body[0].id).toBe("item-1");
-    expect(body[0].thumbnailUrl).toBe("https://signed.example.com/photo.jpg");
+    expect(body.items).toHaveLength(1);
+    expect(body.items[0].id).toBe("item-1");
+    expect(body.items[0].thumbnailUrl).toBe("https://signed.example.com/photo.jpg");
   });
 
   it("returns empty array for no items", async () => {
@@ -269,7 +271,7 @@ describe("GET /api/estates/[id]/items", () => {
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body).toEqual([]);
+    expect(body.items).toEqual([]);
   });
 
   it("returns 404 for non-existent estate", async () => {
@@ -305,6 +307,6 @@ describe("GET /api/estates/[id]/items", () => {
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body[0].thumbnailUrl).toBeNull();
+    expect(body.items[0].thumbnailUrl).toBeNull();
   });
 });
