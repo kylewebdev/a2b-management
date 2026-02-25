@@ -503,42 +503,39 @@ Upload photos → AI analyzes them → results stream in real-time → item gets
 - [ ] Item detail shows routing guidance based on tier:
   - **Tier 1:** "Tag and move on. Bulk lot, donate, or dispose."
   - **Tier 2:** "Price tag it. AI suggests: $XX–$XX"
-  - **Tier 3:** "Pull for research. Take full photo set." + listing platform recommendation
-  - **Tier 4:** "Secure this item. Potential high value." + specialist/auction guidance
+  - **Tier 3:** "Pull for research. Take full photo set."
+  - **Tier 4:** "Secure this item. Potential high value."
 - [ ] Color-coded visual treatment per tier on the item card
 
 ### 5.2 Disposition Tracking
 
+> **Simplified:** Everything is sold at the estate sale — we contract for the whole estate. Disposition is lightweight, not a complex per-tier routing system.
+
 - [ ] `PATCH /api/items/[id]` — update disposition field
-- [ ] Disposition options by tier:
-  - **Tier 1:** Bulk lot, Donated, Trashed
-  - **Tier 2:** Sold onsite, Listed online
-  - **Tier 3:** Listed (eBay, Mercari, FB Marketplace, other), Sold, Unsold
-  - **Tier 4:** Consigned to auction, Sold through dealer, Appraised, Held
-- [ ] Sold items: capture actual sale price for revenue tracking
+- [ ] Disposition options (flat list, same for all tiers):
+  - **Sold onsite** — the default for tiers 2/3/4
+  - **Bulk lot** — tier 1 items grouped and sold as a lot
+  - **Donated** — tier 1 items given away
+  - **Trashed** — tier 1 items with no value
 - [ ] Item status advances to `resolved` when disposition is set
 
 ### 5.3 Routing & Disposition Tests
 
 - [ ] `src/lib/__tests__/disposition.test.ts`:
-  - Returns correct disposition options for each tier
-  - Tier 1 items cannot be set to "Consigned to auction"
-  - Tier 4 items include all specialist options
+  - Returns all four disposition options (sold onsite, bulk lot, donated, trashed)
   - Setting a disposition advances item status to `resolved`
-  - Sold disposition requires a sale price
-  - Sale price must be a positive number
+  - Rejects invalid disposition values
 - [ ] `src/app/api/items/[id]/__tests__/disposition.test.ts`:
   - **PATCH** with valid disposition → updates item, status → resolved
-  - **PATCH** with disposition mismatched to tier → 400
-  - **PATCH** with "sold" disposition but no price → 400
+  - **PATCH** with invalid disposition value → 400
   - **PATCH** on already-resolved item → 400 (or allows override with flag)
   - Returns 403 for non-owner
 - [ ] `src/app/estates/[id]/items/[itemId]/__tests__/routing.test.tsx`:
   - Tier 1 item shows "Tag and move on" guidance
   - Tier 2 item shows price tag suggestion with value range
-  - Tier 3 item shows listing platform recommendation
+  - Tier 3 item shows "Pull for research" guidance
   - Tier 4 item shows "Secure this item" warning
-  - Disposition dropdown shows only valid options for the item's tier
+  - Disposition dropdown shows all options
   - Selecting disposition and confirming updates the item
 
 ### 5.4 Estate Detail Enhancements
