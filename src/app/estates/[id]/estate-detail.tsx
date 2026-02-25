@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, Pencil, Trash2, Package } from "lucide-react";
+import Link from "next/link";
+import { MapPin, Pencil, Trash2, Package, Camera } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
+import { ItemCard } from "@/components/item-card";
 
 interface Estate {
   id: string;
@@ -16,13 +18,22 @@ interface Estate {
   createdAt: string;
 }
 
+interface ItemSummary {
+  id: string;
+  estateId: string;
+  tier: "1" | "2" | "3" | "4" | null;
+  status: "pending" | "triaged" | "routed" | "resolved";
+  thumbnailUrl: string | null;
+  aiIdentification: { title?: string } | null;
+}
+
 const NEXT_STATUS: Record<string, { label: string; value: string } | null> = {
   active: { label: "Start Resolving", value: "resolving" },
   resolving: { label: "Close Estate", value: "closed" },
   closed: null,
 };
 
-export function EstateDetail({ estate }: { estate: Estate }) {
+export function EstateDetail({ estate, items = [] }: { estate: Estate; items?: ItemSummary[] }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -214,13 +225,33 @@ export function EstateDetail({ estate }: { estate: Estate }) {
 
       {/* Items section */}
       <div className="mt-8">
-        <h2 className="text-sm font-semibold text-text-muted">Items</h2>
-        <div className="mt-3 flex flex-col items-center rounded-lg border border-dashed border-border py-10 text-center">
-          <Package size={24} className="text-text-muted" />
-          <p className="mt-2 text-sm text-text-secondary">
-            No items yet. Grab your camera.
-          </p>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-text-muted">Items</h2>
+          {estate.status === "active" && (
+            <Link
+              href={`/estates/${estate.id}/upload`}
+              className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-bg transition-colors hover:bg-accent/90"
+            >
+              <Camera size={14} />
+              Upload Photos
+            </Link>
+          )}
         </div>
+
+        {items.length > 0 ? (
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {items.map((item) => (
+              <ItemCard key={item.id} {...item} />
+            ))}
+          </div>
+        ) : (
+          <div className="mt-3 flex flex-col items-center rounded-lg border border-dashed border-border py-10 text-center">
+            <Package size={24} className="text-text-muted" />
+            <p className="mt-2 text-sm text-text-secondary">
+              No items yet. Grab your camera.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -46,7 +46,7 @@ _(Playwright E2E wired up in Phase 7.)_
 
 ## Build Progress
 
-Current phase: **3 — Item & Photo Pipeline** (not started)
+Current phase: **4 — AI Triage Engine** (not started)
 
 See `docs/BuildPlan.md` for details.
 

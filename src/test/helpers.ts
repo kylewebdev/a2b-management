@@ -54,6 +54,18 @@ export function createTestItemPhoto(itemId: string, overrides: Record<string, un
 }
 
 /**
+ * Factory: create a mock File for upload tests.
+ */
+export function createMockFile(
+  name = "photo.jpg",
+  type = "image/jpeg",
+  sizeBytes = 1024
+): File {
+  const buffer = new ArrayBuffer(sizeBytes);
+  return new File([buffer], name, { type });
+}
+
+/**
  * Reset the factory counter between suites if needed.
  */
 export function resetFactoryCounter() {

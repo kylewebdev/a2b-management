@@ -1,9 +1,10 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { auth } from "@clerk/nextjs/server";
 import { redirect, notFound } from "next/navigation";
 import { Shell } from "@/components/shell";
 import { db } from "@/db";
-import { estates, items } from "@/db/schema";
+import { estates, items, itemPhotos } from "@/db/schema";
+import { getSignedViewUrl } from "@/lib/r2";
 import { EstateDetail } from "./estate-detail";
 
 export default async function EstateDetailPage({
@@ -36,6 +37,42 @@ export default async function EstateDetailPage({
 
   if (!estate || estate.userId !== userId) notFound();
 
+  // Fetch items with first photo per item
+  const estateItems = await db
+    .select()
+    .from(items)
+    .where(eq(items.estateId, id))
+    .orderBy(desc(items.createdAt));
+
+  const itemsWithThumbnails = await Promise.all(
+    estateItems.map(async (item) => {
+      const [firstPhoto] = await db
+        .select()
+        .from(itemPhotos)
+        .where(eq(itemPhotos.itemId, item.id))
+        .orderBy(itemPhotos.sortOrder)
+        .limit(1);
+
+      let thumbnailUrl: string | null = null;
+      if (firstPhoto) {
+        try {
+          thumbnailUrl = await getSignedViewUrl(firstPhoto.r2Key);
+        } catch {
+          // R2 env vars may be missing in dev — fall back gracefully
+        }
+      }
+
+      return {
+        id: item.id,
+        estateId: item.estateId,
+        tier: item.tier,
+        status: item.status,
+        thumbnailUrl,
+        aiIdentification: item.aiIdentification as { title?: string } | null,
+      };
+    })
+  );
+
   return (
     <Shell>
       <div className="mx-auto max-w-2xl p-6">
@@ -44,6 +81,7 @@ export default async function EstateDetailPage({
             ...estate,
             createdAt: estate.createdAt.toISOString(),
           }}
+          items={itemsWithThumbnails}
         />
       </div>
     </Shell>

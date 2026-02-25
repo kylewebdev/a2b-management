@@ -17,10 +17,13 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.997.0",
+    "@aws-sdk/s3-request-presigner": "^3.997.0",
     "@clerk/nextjs": "^6.38.2",
     "@clerk/themes": "^2.4.55",
     "@neondatabase/serverless": "^1.0.2",
     "drizzle-orm": "^0.45.1",
+    "heic2any": "^0.0.4",
     "lucide-react": "^0.575.0",
     "next": "16.1.6",
     "react": "19.2.3",
