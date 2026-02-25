@@ -1,36 +1,110 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# A2B Manager
+
+AI-powered estate liquidation appraisal co-pilot. Operators photograph items during estate cleanouts, and AI rapidly identifies, classifies, values, and routes each item through the correct disposition path.
+
+**Core mission:** Move fast without leaving money on the table.
+
+## Stack
+
+- **Framework:** Next.js 16 (App Router) with React 19
+- **Database:** Drizzle ORM + Neon Postgres (serverless HTTP driver)
+- **Auth:** Clerk (middleware-protected routes, dark theme)
+- **Storage:** Cloudflare R2 (S3-compatible, signed URLs)
+- **AI:** Multi-provider — Anthropic, OpenAI, Google Gemini (BYOK)
+- **Validation:** Zod v4 (shared schemas between API and client)
+- **Styling:** Tailwind CSS v4, dark-only theme, mobile-first
+- **Testing:** Vitest + Testing Library + jest-dom (305+ tests)
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+# Install dependencies
+npm install
+
+# Copy env template and fill in your values
+cp .env.example .env.local
+
+# Push database schema to Neon
+npm run db:push
+
+# Start dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to use the app. You'll be redirected to Clerk sign-in on first visit.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+See `.env.example` for the full list:
 
-## Learn More
+- `DATABASE_URL` — Neon Postgres connection string
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` — Clerk auth
+- `R2_*` — R2 storage credentials
+- `ENCRYPTION_SECRET` — AES-256-GCM key for encrypting API keys at rest
 
-To learn more about Next.js, take a look at the following resources:
+## Commands
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run dev           # Start dev server
+npm run build         # Production build
+npm run lint          # ESLint
+npm test              # Run vitest
+npm run test:watch    # Watch mode
+npm run test:coverage # Coverage report
+npm run db:push       # Push schema to Neon
+npm run db:studio     # Open Drizzle Studio
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+```
+src/
+  app/                  # App Router pages and API routes
+    api/
+      estates/          # POST/GET estates, GET/PATCH/DELETE estates/[id]
+      items/[id]/       # GET/PATCH/DELETE items, POST triage, GET triage/stream
+      settings/         # GET/PUT app-level settings
+    estates/            # Estate list, create, detail, upload, item detail pages
+    settings/           # Settings page
+  components/           # Shared components (Shell, StatusBadge, TierBadge, etc.)
+  db/
+    schema.ts           # 4 tables, 4 enums
+    index.ts            # Drizzle client (Neon HTTP)
+  lib/
+    ai/                 # AI types, prompt, parser, provider adapters, factory
+    hooks/              # React hooks (use-triage-stream)
+    validations/        # Zod schemas (estate, item, settings)
+    api.ts              # Auth helpers (getAuthUserId, jsonError, jsonSuccess)
+    crypto.ts           # AES-256-GCM encrypt/decrypt for API keys
+    r2.ts               # R2 client (upload, delete, signed URLs)
+    sse.ts              # SSE stream helpers
+  test/                 # Test setup, helpers, factories
+docs/                   # Project spec, architecture, brand guidelines, build plan
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## How It Works
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. **Create an estate** — each estate is a job site identified by address
+2. **Upload photos** — 1-5 photos per item, HEIC auto-converted client-side
+3. **AI triage** — choose your AI provider in settings, then triage items individually or in batch
+4. **Review results** — AI returns identification, tier (1-4), valuation range, comps, and listing guidance via SSE streaming
+5. **Route & resolve** — disposition tracking based on tier (Phase 5, in progress)
+
+### Tier System
+
+| Tier | Action | Description |
+|------|--------|-------------|
+| 1 | Tag and move on | Bulk lot, donate, or dispose |
+| 2 | Price tag it | AI-suggested pricing for estate sale |
+| 3 | Pull for research | Needs full photo set and deeper analysis |
+| 4 | Secure this item | Potential high value, route to specialist |
+
+## Build Progress
+
+**Phases 1-4 complete. Phase 5 (Routing & Resolution) next.**
+
+See `docs/BuildPlan.md` for the full plan and checklist.
+
+## License
+
+Private.
