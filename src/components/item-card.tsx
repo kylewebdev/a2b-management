@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ImageOff } from "lucide-react";
+import { ImageOff, ChevronRight } from "lucide-react";
 import { TierBadge } from "./tier-badge";
 
 export interface ItemCardProps {
@@ -9,6 +9,7 @@ export interface ItemCardProps {
   status: "pending" | "triaged" | "routed" | "resolved";
   thumbnailUrl: string | null;
   aiIdentification: { title?: string } | null;
+  aiValuation: { lowEstimate?: number; highEstimate?: number } | null;
 }
 
 const statusLabels: Record<string, string> = {
@@ -18,6 +19,13 @@ const statusLabels: Record<string, string> = {
   resolved: "Resolved",
 };
 
+function formatValue(val: number): string {
+  if (val >= 1000) {
+    return `$${(val / 1000).toFixed(val % 1000 === 0 ? 0 : 1)}k`;
+  }
+  return `$${val}`;
+}
+
 export function ItemCard({
   id,
   estateId,
@@ -25,17 +33,24 @@ export function ItemCard({
   status,
   thumbnailUrl,
   aiIdentification,
+  aiValuation,
 }: ItemCardProps) {
-  const title =
-    aiIdentification?.title ?? "Awaiting triage";
+  const title = aiIdentification?.title ?? "Awaiting triage";
+
+  const low = aiValuation?.lowEstimate;
+  const high = aiValuation?.highEstimate;
+  const valueText =
+    low != null && high != null
+      ? `${formatValue(low)} – ${formatValue(high)}`
+      : null;
 
   return (
     <Link
       href={`/estates/${estateId}/items/${id}`}
-      className="block rounded-lg border border-border bg-surface transition-colors hover:bg-surface-raised overflow-hidden"
+      className="flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2 transition-colors hover:bg-surface-raised"
     >
       {/* Thumbnail */}
-      <div className="aspect-square bg-surface-raised flex items-center justify-center">
+      <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-md bg-surface-raised flex items-center justify-center">
         {thumbnailUrl ? (
           <img
             src={thumbnailUrl}
@@ -43,20 +58,28 @@ export function ItemCard({
             className="h-full w-full object-cover"
           />
         ) : (
-          <ImageOff size={24} className="text-text-muted" />
+          <ImageOff size={18} className="text-text-muted" />
         )}
       </div>
 
-      {/* Info */}
-      <div className="p-3">
-        <div className="flex items-start justify-between gap-2">
-          <p className="text-sm font-medium text-text-primary truncate">
-            {title}
-          </p>
-          <TierBadge tier={tier} />
-        </div>
-        <p className="mt-1 text-xs text-text-muted">{statusLabels[status]}</p>
+      {/* Title + status */}
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-text-primary truncate">
+          {title}
+        </p>
+        <p className="mt-0.5 text-xs text-text-muted">{statusLabels[status]}</p>
       </div>
+
+      {/* Tier */}
+      <TierBadge tier={tier} />
+
+      {/* Value */}
+      <span className="hidden sm:block flex-shrink-0 text-sm text-text-secondary">
+        {valueText ?? "—"}
+      </span>
+
+      {/* Chevron */}
+      <ChevronRight size={16} className="flex-shrink-0 text-text-muted" />
     </Link>
   );
 }

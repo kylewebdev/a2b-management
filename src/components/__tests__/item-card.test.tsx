@@ -9,6 +9,7 @@ const defaultProps = {
   status: "pending" as const,
   thumbnailUrl: "https://example.com/photo.jpg",
   aiIdentification: null as { title?: string } | null,
+  aiValuation: null as { lowEstimate?: number; highEstimate?: number } | null,
 };
 
 describe("ItemCard", () => {
@@ -60,5 +61,30 @@ describe("ItemCard", () => {
     render(<ItemCard {...defaultProps} />);
     const link = screen.getByRole("link");
     expect(link).toHaveAttribute("href", "/estates/estate-1/items/item-1");
+  });
+
+  it("renders em dash when no valuation", () => {
+    render(<ItemCard {...defaultProps} />);
+    expect(screen.getByText("—")).toBeInTheDocument();
+  });
+
+  it("renders value range when valuation is provided", () => {
+    render(
+      <ItemCard
+        {...defaultProps}
+        aiValuation={{ lowEstimate: 200, highEstimate: 500 }}
+      />
+    );
+    expect(screen.getByText("$200 – $500")).toBeInTheDocument();
+  });
+
+  it("formats large values with k suffix", () => {
+    render(
+      <ItemCard
+        {...defaultProps}
+        aiValuation={{ lowEstimate: 1500, highEstimate: 3000 }}
+      />
+    );
+    expect(screen.getByText("$1.5k – $3k")).toBeInTheDocument();
   });
 });

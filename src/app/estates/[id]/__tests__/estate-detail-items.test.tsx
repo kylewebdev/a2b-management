@@ -24,6 +24,7 @@ const mockItem = {
   status: "triaged" as const,
   thumbnailUrl: "https://example.com/thumb.jpg",
   aiIdentification: { title: "Antique Writing Desk" },
+  aiValuation: null as { lowEstimate?: number; highEstimate?: number } | null,
 };
 
 describe("EstateDetail items integration", () => {

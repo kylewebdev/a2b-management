@@ -58,7 +58,7 @@ export default async function ItemDetailPage({
 
   return (
     <Shell>
-      <div className="mx-auto max-w-2xl p-6">
+      <div className="mx-auto max-w-6xl p-6">
         <ItemDetail
           item={{
             id: item.id,
@@ -67,8 +67,17 @@ export default async function ItemDetailPage({
             status: item.status,
             notes: item.notes,
             disposition: item.disposition,
-            aiIdentification: item.aiIdentification as { title?: string; description?: string } | null,
-            aiValuation: item.aiValuation as { estimate?: string } | null,
+            aiIdentification: item.aiIdentification as { title?: string; description?: string; category?: string } | null,
+            aiValuation: item.aiValuation as {
+              lowEstimate?: number;
+              highEstimate?: number;
+              confidence?: string;
+              condition?: string;
+              comparables?: string[];
+              listingGuidance?: { platforms?: string[]; keywords?: string[]; description?: string } | null;
+              sleeperAlert?: string | null;
+              additionalPhotosRequested?: string[] | null;
+            } | null,
             photos: photosWithUrls,
           }}
         />

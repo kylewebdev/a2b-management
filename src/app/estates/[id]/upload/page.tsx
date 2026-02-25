@@ -25,7 +25,7 @@ export default async function UploadPage({
 
   return (
     <Shell>
-      <div className="mx-auto max-w-2xl p-6">
+      <div className="mx-auto max-w-4xl p-6">
         <UploadForm
           estateId={estate.id}
           estateName={estate.name ?? estate.address}

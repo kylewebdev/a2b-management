@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, desc } from "drizzle-orm";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { Shell } from "@/components/shell";
@@ -27,7 +27,10 @@ export default async function EstatesPage() {
     })
     .from(estates)
     .where(eq(estates.userId, userId))
-    .orderBy(estates.createdAt);
+    .orderBy(
+      sql`CASE ${estates.status} WHEN 'active' THEN 0 WHEN 'resolving' THEN 1 WHEN 'closed' THEN 2 END`,
+      desc(estates.createdAt),
+    );
 
   const mapped = result.map((e) => ({
     ...e,

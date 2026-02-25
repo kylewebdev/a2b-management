@@ -7,6 +7,13 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 
+// Mock TriageDisplay since it's tested separately
+vi.mock("../triage-display", () => ({
+  TriageDisplay: ({ itemStatus }: { itemStatus: string }) => (
+    <div data-testid="triage-display">Triage: {itemStatus}</div>
+  ),
+}));
+
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
@@ -52,23 +59,24 @@ describe("ItemDetail", () => {
     expect(screen.queryByTestId("thumbnail-strip")).not.toBeInTheDocument();
   });
 
-  it("renders triage placeholder when no AI data", () => {
+  it("renders TriageDisplay component", () => {
     render(<ItemDetail item={baseItem} />);
-    expect(screen.getByText("Results will appear here after AI analysis.")).toBeInTheDocument();
-    expect(screen.getByText("Valuation will appear here after AI analysis.")).toBeInTheDocument();
+    expect(screen.getByTestId("triage-display")).toBeInTheDocument();
+    expect(screen.getByText("Triage: pending")).toBeInTheDocument();
   });
 
-  it("renders AI identification when available", () => {
+  it("passes triaged status to TriageDisplay", () => {
     render(
       <ItemDetail
         item={{
           ...baseItem,
+          status: "triaged",
+          tier: "3",
           aiIdentification: { title: "Mahogany Desk", description: "19th century" },
         }}
       />
     );
-    expect(screen.getByText("Mahogany Desk")).toBeInTheDocument();
-    expect(screen.getByText("19th century")).toBeInTheDocument();
+    expect(screen.getByText("Triage: triaged")).toBeInTheDocument();
   });
 
   it("renders disposition placeholder when not set", () => {
@@ -76,9 +84,10 @@ describe("ItemDetail", () => {
     expect(screen.getByText("Not yet decided")).toBeInTheDocument();
   });
 
-  it("renders tier and status badges", () => {
+  it("delegates tier display to TriageDisplay (no badges row)", () => {
     render(<ItemDetail item={{ ...baseItem, tier: "3", status: "triaged" }} />);
-    expect(screen.getByText("Tier 3")).toBeInTheDocument();
+    // Tier badge no longer rendered directly — owned by TriageDisplay
+    expect(screen.getByTestId("triage-display")).toBeInTheDocument();
   });
 
   it("renders back-to-estate link", () => {

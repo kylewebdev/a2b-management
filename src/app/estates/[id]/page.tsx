@@ -62,6 +62,11 @@ export default async function EstateDetailPage({
         }
       }
 
+      const aiValuation = item.aiValuation as {
+        lowEstimate?: number;
+        highEstimate?: number;
+      } | null;
+
       return {
         id: item.id,
         estateId: item.estateId,
@@ -69,19 +74,23 @@ export default async function EstateDetailPage({
         status: item.status,
         thumbnailUrl,
         aiIdentification: item.aiIdentification as { title?: string } | null,
+        aiValuation: aiValuation
+          ? { lowEstimate: aiValuation.lowEstimate, highEstimate: aiValuation.highEstimate }
+          : null,
       };
     })
   );
 
   return (
     <Shell>
-      <div className="mx-auto max-w-2xl p-6">
+      <div className="mx-auto max-w-6xl p-6">
         <EstateDetail
           estate={{
             ...estate,
             createdAt: estate.createdAt.toISOString(),
           }}
           items={itemsWithThumbnails}
+          pendingItemIds={estateItems.filter((i) => i.status === "pending").map((i) => i.id)}
         />
       </div>
     </Shell>
