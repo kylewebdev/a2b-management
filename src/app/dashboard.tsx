@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Warehouse } from "lucide-react";
 import { EstateCard, type EstateCardProps } from "@/components/estate-card";
 
 export function Dashboard({ estates }: { estates: EstateCardProps[] }) {
@@ -19,9 +19,19 @@ export function Dashboard({ estates }: { estates: EstateCardProps[] }) {
       </div>
 
       {estates.length === 0 ? (
-        <p className="mt-6 text-text-secondary">
-          No active estates. Time to start digging.
-        </p>
+        <div className="mt-6 flex flex-col items-center rounded-lg border border-dashed border-border py-10 text-center">
+          <Warehouse size={24} className="text-text-muted" />
+          <p className="mt-2 text-sm text-text-secondary">
+            No active estates. Time to start digging.
+          </p>
+          <Link
+            href="/estates/new"
+            className="mt-4 inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg transition-colors hover:bg-accent/90"
+          >
+            <Plus size={16} />
+            New Estate
+          </Link>
+        </div>
       ) : (
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {estates.map((estate) => (

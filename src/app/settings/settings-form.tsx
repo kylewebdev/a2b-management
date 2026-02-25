@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Loader2, Check, AlertTriangle, Info } from "lucide-react";
+import { useToast } from "@/components/toast";
 
 type Provider = "anthropic" | "openai" | "google";
 
@@ -56,6 +57,7 @@ const inputClass =
   "mt-1 block w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none";
 
 export function SettingsForm() {
+  const { addToast } = useToast();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -120,6 +122,7 @@ export function SettingsForm() {
 
       if (!res.ok) {
         setSaveStatus("error");
+        addToast({ type: "error", message: "Failed to save settings" });
         return;
       }
 
@@ -127,9 +130,11 @@ export function SettingsForm() {
       setSettings(updated);
       setApiKey(""); // Clear the input after save
       setSaveStatus("saved");
+      addToast({ type: "success", message: "Settings saved" });
       setTimeout(() => setSaveStatus("idle"), 3000);
     } catch {
       setSaveStatus("error");
+      addToast({ type: "error", message: "Failed to save settings" });
     } finally {
       setSaving(false);
     }
@@ -147,8 +152,10 @@ export function SettingsForm() {
       });
       const data = await res.json();
       setTestKeyResult(data);
+      addToast({ type: data.valid ? "success" : "error", message: data.valid ? "API key is valid" : (data.error ?? "Invalid key") });
     } catch {
       setTestKeyResult({ valid: false, error: "Network error" });
+      addToast({ type: "error", message: "Network error testing key" });
     } finally {
       setTestingKey(false);
     }
@@ -182,6 +189,14 @@ export function SettingsForm() {
         <Info size={14} className="mt-0.5 shrink-0 text-accent" />
         <span>These settings affect all users. Changes to the AI provider or API key will apply to every triage going forward.</span>
       </div>
+
+      {/* No API key callout */}
+      {!maskedKey && (
+        <div className="flex items-start gap-2 rounded-md border border-accent/30 bg-accent/5 p-3 text-xs text-accent" data-testid="no-key-callout">
+          <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+          <span>Add your {PROVIDER_LABELS[provider]} API key to start triaging.</span>
+        </div>
+      )}
 
       {/* Provider */}
       <div>

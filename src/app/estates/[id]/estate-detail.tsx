@@ -5,8 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { MapPin, Pencil, Trash2, Package, Camera, CheckCircle } from "lucide-react";
 import { canCloseEstate, getCloseEstateStats } from "@/lib/estate-lifecycle";
+import { useToast } from "@/components/toast";
 import { StatusBadge } from "@/components/status-badge";
 import { ItemCard } from "@/components/item-card";
+import { SwipeableItemCard } from "@/components/swipeable-item-card";
+import type { Disposition } from "@/lib/disposition";
 import { BatchTriage } from "./batch-triage";
 import { EstateSummaryPanel } from "./estate-summary";
 import { ItemFilters } from "./item-filters";
@@ -40,13 +43,17 @@ const NEXT_STATUS: Record<string, { label: string; value: string } | null> = {
   closed: null,
 };
 
-export function EstateDetail({ estate, items = [], pendingItemIds = [], summary }: { estate: Estate; items?: ItemSummary[]; pendingItemIds?: string[]; summary?: EstateSummary }) {
+export function EstateDetail({ estate, items = [], pendingItemIds = [], summary, nextCursor }: { estate: Estate; items?: ItemSummary[]; pendingItemIds?: string[]; summary?: EstateSummary; nextCursor?: string | null }) {
   const router = useRouter();
+  const { addToast } = useToast();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [tierFilter, setTierFilter] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [moreItems, setMoreItems] = useState<ItemSummary[]>([]);
+  const [currentCursor, setCurrentCursor] = useState<string | null>(nextCursor ?? null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // Edit form state
   const [name, setName] = useState(estate.name ?? "");
@@ -64,7 +71,10 @@ export function EstateDetail({ estate, items = [], pendingItemIds = [], summary 
       });
       if (res.ok) {
         setEditing(false);
+        addToast({ type: "success", message: "Estate updated" });
         router.refresh();
+      } else {
+        addToast({ type: "error", message: "Failed to save changes" });
       }
     } finally {
       setSaving(false);
@@ -81,7 +91,12 @@ export function EstateDetail({ estate, items = [], pendingItemIds = [], summary 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: next.value }),
     });
-    if (res.ok) router.refresh();
+    if (res.ok) {
+      addToast({ type: "success", message: `Estate ${next.value === "closed" ? "closed" : "status updated"}` });
+      router.refresh();
+    } else {
+      addToast({ type: "error", message: "Failed to update status" });
+    }
   }
 
   async function handleDelete() {
@@ -90,16 +105,50 @@ export function EstateDetail({ estate, items = [], pendingItemIds = [], summary 
     try {
       const res = await fetch(`/api/estates/${estate.id}`, { method: "DELETE" });
       if (res.ok) {
+        addToast({ type: "success", message: "Estate deleted" });
         router.push("/estates");
+      } else {
+        addToast({ type: "error", message: "Failed to delete estate" });
       }
     } finally {
       setDeleting(false);
     }
   }
 
+  async function handleLoadMore() {
+    if (!currentCursor) return;
+    setLoadingMore(true);
+    try {
+      const res = await fetch(`/api/estates/${estate.id}/items?cursor=${currentCursor}`);
+      if (res.ok) {
+        const data = await res.json();
+        setMoreItems((prev) => [...prev, ...data.items]);
+        setCurrentCursor(data.nextCursor ?? null);
+      }
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  async function handleSwipeDisposition(itemId: string, disposition: Disposition) {
+    const res = await fetch(`/api/items/${itemId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ disposition }),
+    });
+    if (res.ok) {
+      addToast({ type: "success", message: "Disposition set" });
+      router.refresh();
+    } else {
+      addToast({ type: "error", message: "Failed to set disposition" });
+    }
+  }
+
   const nextStatus = NEXT_STATUS[estate.status];
+  const allItems = [...items, ...moreItems];
+
   const showClosePrompt =
-    estate.status === "resolving" && canCloseEstate(items);
+    estate.status === "resolving" && canCloseEstate(allItems);
   const closeStats = showClosePrompt ? getCloseEstateStats(items) : null;
 
   return (
@@ -138,7 +187,7 @@ export function EstateDetail({ estate, items = [], pendingItemIds = [], summary 
         <div className="mt-6 flex flex-wrap gap-2">
           <button
             onClick={() => setEditing(!editing)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-surface-raised"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 min-h-[44px] text-sm text-text-secondary transition-colors hover:bg-surface-raised"
           >
             <Pencil size={14} />
             Edit
@@ -147,7 +196,7 @@ export function EstateDetail({ estate, items = [], pendingItemIds = [], summary 
           {nextStatus && (
             <button
               onClick={handleStatusAdvance}
-              className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-bg transition-colors hover:bg-accent/90"
+              className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 min-h-[44px] text-sm font-medium text-bg transition-colors hover:bg-accent/90"
             >
               {nextStatus.label}
             </button>
@@ -157,7 +206,7 @@ export function EstateDetail({ estate, items = [], pendingItemIds = [], summary 
             <button
               onClick={handleDelete}
               disabled={deleting}
-              className="inline-flex items-center gap-1.5 rounded-md border border-red-400/30 px-3 py-1.5 text-sm text-red-400 transition-colors hover:bg-red-400/10"
+              className="inline-flex items-center gap-1.5 rounded-md border border-red-400/30 px-3 py-1.5 min-h-[44px] text-sm text-red-400 transition-colors hover:bg-red-400/10"
             >
               <Trash2 size={14} />
               {deleting ? "Deleting..." : "Delete"}
@@ -287,7 +336,7 @@ export function EstateDetail({ estate, items = [], pendingItemIds = [], summary 
         )}
 
         {/* Filters */}
-        {items.length > 0 && (
+        {allItems.length > 0 && (
           <div className="mt-3">
             <ItemFilters
               tierFilter={tierFilter}
@@ -298,17 +347,35 @@ export function EstateDetail({ estate, items = [], pendingItemIds = [], summary 
           </div>
         )}
 
-        {items.length > 0 ? (
+        {allItems.length > 0 ? (
           <div className="mt-3 space-y-2">
-            {items
+            {allItems
               .filter((item) => {
                 if (tierFilter && item.tier !== tierFilter) return false;
                 if (statusFilter && item.status !== statusFilter) return false;
                 return true;
               })
-              .map((item) => (
-                <ItemCard key={item.id} {...item} />
-              ))}
+              .map((item) => {
+                const canSwipe = item.status === "triaged" || item.status === "routed";
+                return canSwipe ? (
+                  <SwipeableItemCard key={item.id} itemId={item.id} onDisposition={handleSwipeDisposition}>
+                    <ItemCard {...item} />
+                  </SwipeableItemCard>
+                ) : (
+                  <ItemCard key={item.id} {...item} />
+                );
+              })}
+
+            {/* Load More */}
+            {currentCursor && (
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="mt-2 w-full rounded-md border border-border py-2 text-sm text-text-secondary transition-colors hover:bg-surface-raised disabled:opacity-50"
+              >
+                {loadingMore ? "Loading..." : "Load More"}
+              </button>
+            )}
           </div>
         ) : (
           <div className="mt-3 flex flex-col items-center rounded-lg border border-dashed border-border py-10 text-center">
@@ -316,6 +383,15 @@ export function EstateDetail({ estate, items = [], pendingItemIds = [], summary 
             <p className="mt-2 text-sm text-text-secondary">
               No items yet. Grab your camera.
             </p>
+            {estate.status === "active" && (
+              <Link
+                href={`/estates/${estate.id}/upload`}
+                className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg transition-colors hover:bg-accent/90"
+              >
+                <Camera size={14} />
+                Upload Photos
+              </Link>
+            )}
           </div>
         )}
       </div>

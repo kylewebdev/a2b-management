@@ -65,7 +65,7 @@ export function ItemCard({
   return (
     <Link
       href={`/estates/${estateId}/items/${id}`}
-      className={`flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2 transition-colors hover:bg-surface-raised ${tierBorder}`}
+      className={`flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2.5 transition-colors hover:bg-surface-raised ${tierBorder}`}
     >
       {/* Thumbnail */}
       <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-md bg-surface-raised flex items-center justify-center">
@@ -73,6 +73,7 @@ export function ItemCard({
           <img
             src={thumbnailUrl}
             alt={title}
+            loading="lazy"
             className="h-full w-full object-cover"
           />
         ) : (

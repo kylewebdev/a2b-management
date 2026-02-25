@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Camera, X, Loader2, CheckCircle2, Upload } from "lucide-react";
 import { prepareFilesForUpload } from "@/lib/heic-convert";
 import { MAX_PHOTOS } from "@/lib/validations/item";
+import { useToast } from "@/components/toast";
 
 type UploadState = "idle" | "preparing" | "uploading" | "success" | "error";
 
@@ -15,7 +16,9 @@ interface UploadFormProps {
 
 export function UploadForm({ estateId, estateName }: UploadFormProps) {
   const router = useRouter();
+  const { addToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [uploadState, setUploadState] = useState<UploadState>("idle");
@@ -35,8 +38,9 @@ export function UploadForm({ estateId, estateName }: UploadFormProps) {
     setPreviews(newPreviews);
     setErrorMessage(null);
 
-    // Reset file input so same files can be re-selected
+    // Reset file inputs so same files can be re-selected
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
   }
 
   function removeFile(index: number) {
@@ -72,7 +76,9 @@ export function UploadForm({ estateId, estateName }: UploadFormProps) {
       setUploadState("success");
     } catch (err) {
       setUploadState("error");
-      setErrorMessage(err instanceof Error ? err.message : "Upload failed");
+      const msg = err instanceof Error ? err.message : "Upload failed";
+      setErrorMessage(msg);
+      addToast({ type: "error", message: msg });
     }
   }
 
@@ -143,6 +149,25 @@ export function UploadForm({ estateId, estateName }: UploadFormProps) {
               <p className="mt-1 text-xs text-text-muted">
                 Up to {MAX_PHOTOS} photos per item. HEIC files will be converted automatically.
               </p>
+            </label>
+
+            {/* Direct camera shortcut for mobile */}
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileSelect}
+              className="hidden"
+              id="camera-input"
+              disabled={isProcessing}
+            />
+            <label
+              htmlFor="camera-input"
+              className="mt-2 flex cursor-pointer items-center justify-center gap-2 rounded-md border border-border px-4 py-2.5 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-raised"
+            >
+              <Camera size={16} />
+              Take Photo
             </label>
           </div>
 

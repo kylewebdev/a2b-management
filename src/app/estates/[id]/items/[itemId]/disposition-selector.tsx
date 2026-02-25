@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { DISPOSITIONS, DISPOSITION_LABELS, type Disposition } from "@/lib/disposition";
+import { useToast } from "@/components/toast";
 
 interface DispositionSelectorProps {
   itemId: string;
@@ -12,6 +13,7 @@ interface DispositionSelectorProps {
 
 export function DispositionSelector({ itemId, status, disposition }: DispositionSelectorProps) {
   const router = useRouter();
+  const { addToast } = useToast();
   const [saving, setSaving] = useState<string | null>(null);
 
   if (status === "pending") {
@@ -31,7 +33,12 @@ export function DispositionSelector({ itemId, status, disposition }: Disposition
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ disposition: value }),
       });
-      if (res.ok) router.refresh();
+      if (res.ok) {
+        addToast({ type: "success", message: `Disposition set: ${DISPOSITION_LABELS[value]}` });
+        router.refresh();
+      } else {
+        addToast({ type: "error", message: "Failed to set disposition" });
+      }
     } finally {
       setSaving(null);
     }
@@ -48,7 +55,7 @@ export function DispositionSelector({ itemId, status, disposition }: Disposition
               key={d}
               onClick={() => handleSelect(d)}
               disabled={saving !== null}
-              className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${
+              className={`rounded-md border px-3 py-2.5 text-sm font-medium transition-colors disabled:opacity-50 ${
                 isActive
                   ? "border-accent bg-accent/15 text-accent"
                   : "border-border bg-surface text-text-secondary hover:bg-surface-raised"

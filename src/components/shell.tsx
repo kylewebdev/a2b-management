@@ -63,7 +63,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-1 flex-col items-center gap-1 py-3 text-xs font-medium transition-colors ${
+              className={`flex flex-1 flex-col items-center gap-1 min-h-[44px] justify-center py-3 text-xs font-medium transition-colors ${
                 active ? "text-accent" : "text-text-muted"
               }`}
             >

@@ -114,6 +114,7 @@ export function ItemDetail({ item }: { item: Item }) {
                       <img
                         src={photo.url}
                         alt={`Photo ${i + 1}`}
+                        loading="lazy"
                         className="h-full w-full object-cover"
                       />
                     </button>

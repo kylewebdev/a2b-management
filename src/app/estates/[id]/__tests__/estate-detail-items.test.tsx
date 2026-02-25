@@ -35,8 +35,9 @@ describe("EstateDetail items integration", () => {
 
   it("renders Upload Photos CTA for active estates", () => {
     render(<EstateDetail estate={baseEstate} />);
-    const link = screen.getByRole("link", { name: /Upload Photos/ });
-    expect(link).toHaveAttribute("href", "/estates/estate-1/upload");
+    const links = screen.getAllByRole("link", { name: /Upload Photos/ });
+    expect(links.length).toBeGreaterThanOrEqual(1);
+    expect(links[0]).toHaveAttribute("href", "/estates/estate-1/upload");
   });
 
   it("hides Upload Photos CTA for closed estates", () => {
