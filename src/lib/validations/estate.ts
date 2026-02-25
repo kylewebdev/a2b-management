@@ -3,19 +3,22 @@ import { z } from "zod";
 export const createEstateSchema = z.object({
   name: z
     .string()
+    .max(500)
     .trim()
     .nullable()
     .optional()
     .transform((v) => v || null),
-  address: z.string().trim().min(1, "Address is required"),
+  address: z.string().max(500).trim().min(1, "Address is required"),
   clientName: z
     .string()
+    .max(500)
     .trim()
     .nullable()
     .optional()
     .transform((v) => v || null),
   notes: z
     .string()
+    .max(500)
     .trim()
     .nullable()
     .optional()
@@ -25,19 +28,22 @@ export const createEstateSchema = z.object({
 const updateFieldsSchema = z.object({
   name: z
     .string()
+    .max(500)
     .trim()
     .nullable()
     .optional()
     .transform((v) => v || null),
-  address: z.string().trim().min(1, "Address is required").optional(),
+  address: z.string().max(500).trim().min(1, "Address is required").optional(),
   clientName: z
     .string()
+    .max(500)
     .trim()
     .nullable()
     .optional()
     .transform((v) => v || null),
   notes: z
     .string()
+    .max(500)
     .trim()
     .nullable()
     .optional()

@@ -16,6 +16,7 @@ export const ALLOWED_MIME_TYPES = [
 export const updateItemSchema = z.object({
   notes: z
     .string()
+    .max(2000)
     .trim()
     .nullable()
     .optional()

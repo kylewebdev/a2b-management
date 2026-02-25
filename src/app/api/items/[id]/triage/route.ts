@@ -1,8 +1,10 @@
 import { eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { estates, items, itemPhotos, appSettings } from "@/db/schema";
 import { getAuthUserId, jsonError, jsonSuccess } from "@/lib/api";
 import { decrypt } from "@/lib/crypto";
+import { triageRateLimiter } from "@/lib/triage-rate-limit";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -15,6 +17,15 @@ const PROVIDER_KEY_MAP = {
 export async function POST(_request: Request, { params }: Params) {
   const userId = await getAuthUserId();
   if (!userId) return jsonError("Unauthorized", 401);
+
+  // Rate limit check
+  const rateResult = triageRateLimiter.check(userId);
+  if (!rateResult.allowed) {
+    return NextResponse.json(
+      { error: "Too many triage requests. Please wait." },
+      { status: 429, headers: { "Retry-After": String(Math.ceil(rateResult.retryAfterMs / 1000)) } }
+    );
+  }
 
   const { id } = await params;
 
