@@ -50,7 +50,7 @@ Tests are not an afterthought bolted on at the end. Each phase includes a "Tests
 | 3 | Item & Photo Pipeline | Photo upload, HEIC conversion, R2 storage, item creation |
 | 4 | AI Triage Engine | Multi-provider AI integration, SSE streaming, structured triage results |
 | 5 | Routing & Resolution | Tier-based routing UX, disposition tracking, item lifecycle completion |
-| 6 | Settings & Cost Tracking | AI provider config, API key management, token usage dashboard |
+| 6 | Settings UI & Cost Tracking | Full settings page UI, token usage dashboard (app-level settings API built in Phase 4) |
 | 7 | Polish & Production | Error handling, loading states, empty states, mobile UX refinement, deploy |
 
 Each phase builds on the last. No phase should start until the previous phase is functional and **all tests pass**.
@@ -386,35 +386,53 @@ End-to-end photo workflow: navigate to estate → tap Upload Photos → select p
   - Handles malformed response gracefully (returns partial result + raw text)
   - Handles response with missing sections (e.g., no comps for Tier 1 item)
 
-### 4.4 User Settings Storage
+### 4.4 Two-Tier Settings Architecture
 
-- [ ] Use Clerk user metadata:
-  - `user_id` (string, Clerk ID)
-  - `ai_provider` (enum: anthropic/openai/google)
-  - `ai_model` (string — specific model ID)
+There are two levels of settings in this app:
+
+1. **App-level settings** (`/settings` page, stored in DB) — Shared configuration that affects how the app works for everyone. Any logged-in user who changes these is changing them for all users. Examples: default AI provider, default model, API keys for AI providers.
+2. **User-level settings** (Clerk user metadata, managed via Clerk `<UserButton>`) — Personal to each user. Examples: profile, display name, auth preferences, notification prefs. Clerk handles this out of the box.
+
+Phase 4 builds the **app-level settings** needed for AI triage to work. The full settings page UI and cost tracking are Phase 6.
+
+### 4.5 App Settings Storage
+
+- [ ] Add `app_settings` table to `src/db/schema.ts` — singleton row pattern (single row, upsert on write):
+  - `id` (integer, primary key, always `1`)
+  - `ai_provider` (enum: anthropic/openai/google, default: anthropic)
+  - `ai_model` (string — specific model ID, nullable)
   - `api_key_anthropic` (encrypted string, nullable)
   - `api_key_openai` (encrypted string, nullable)
   - `api_key_google` (encrypted string, nullable)
-- [ ] `GET /api/settings` — return current provider config (never return raw API keys to client — only masked versions)
-- [ ] `PUT /api/settings` — update provider, model, or API keys
-- [ ] API key encryption: encrypt at rest in the database, decrypt only server-side when making AI calls
+  - `updated_at` (timestamp)
+  - `updated_by` (text — Clerk user ID of who last changed settings)
+- [ ] Create `src/lib/crypto.ts` — encrypt/decrypt helpers for API keys (AES-256-GCM, key from `ENCRYPTION_SECRET` env var)
+- [ ] `GET /api/settings` — return current app settings (API keys masked, e.g., `sk-...XYZ`)
+- [ ] `PUT /api/settings` — upsert app settings (provider, model, API keys)
+- [ ] API key encryption: encrypt at rest in DB, decrypt only server-side when making AI calls
 
-### 4.5 Settings API Tests
+### 4.6 Settings API Tests
 
+- [ ] `src/lib/__tests__/crypto.test.ts`:
+  - Encrypt → decrypt round-trip returns original value
+  - Encrypted value is not plaintext
+  - Different inputs produce different ciphertext
+  - Decrypt with wrong secret throws
 - [ ] `src/app/api/settings/__tests__/route.test.ts`:
   - **GET** returns provider and model, API keys masked (e.g., `sk-...XYZ`)
-  - **GET** returns defaults when no settings saved yet
+  - **GET** returns defaults when no settings saved yet (first run)
   - **PUT** saves provider selection
   - **PUT** saves and encrypts API key
   - **PUT** rejects invalid provider name
+  - **PUT** records `updated_by` with the current user's Clerk ID
   - Encrypted key in DB does not match plaintext input
   - Decrypted key matches original input (round-trip encryption test)
 
-### 4.6 Triage API with SSE
+### 4.7 Triage API with SSE
 
 - [ ] `POST /api/items/[id]/triage` — trigger triage:
   - Load item photos from R2
-  - Load user's AI settings (provider, model, API key)
+  - Load app settings from DB (provider, model, decrypt API key)
   - Call the appropriate provider adapter
   - Return immediately with 202 Accepted
 - [ ] `GET /api/items/[id]/triage/stream` — SSE endpoint:
@@ -423,12 +441,12 @@ End-to-end photo workflow: navigate to estate → tap Upload Photos → select p
   - On completion: parse structured result, update item record (tier, ai_identification, ai_valuation, ai_raw_response, ai_provider, tokens_used, status → triaged)
   - Close SSE connection
 
-### 4.7 Triage API Tests
+### 4.8 Triage API Tests
 
 - [ ] `src/app/api/items/[id]/triage/__tests__/route.test.ts`:
   - **POST** triggers triage, returns 202
   - Rejects item with no photos → 400
-  - Rejects when user has no AI settings / API key → 400 with clear message
+  - Rejects when no app settings / API key configured → 400 with clear message
   - Rejects non-owned item → 403
   - Item status updates to `triaged` after completion
   - Item record populated: tier, ai_identification, ai_valuation, ai_raw_response, tokens_used
@@ -438,7 +456,7 @@ End-to-end photo workflow: navigate to estate → tap Upload Photos → select p
   - Sends `[DONE]` event on completion
   - Handles provider error mid-stream (sends error event, closes connection)
 
-### 4.8 Triage UI
+### 4.9 Triage UI
 
 - [ ] After upload, auto-trigger triage (or manual "Triage" button)
 - [ ] Item detail page: real-time streaming text area showing AI response as it arrives
@@ -452,7 +470,7 @@ End-to-end photo workflow: navigate to estate → tap Upload Photos → select p
   - Listing guidance (tier 3+ only)
 - [ ] Upload page: after uploading photos, show streaming triage inline so operator doesn't need to navigate away
 
-### 4.9 Triage UI Tests
+### 4.10 Triage UI Tests
 
 - [ ] `src/app/estates/[id]/items/[itemId]/__tests__/triage-display.test.tsx`:
   - Shows "Triage" button for pending items
@@ -463,13 +481,13 @@ End-to-end photo workflow: navigate to estate → tap Upload Photos → select p
   - "Request more photos" section appears when AI requests them
   - Listing guidance section appears only for tier 3+
 
-### 4.10 Batch Triage
+### 4.11 Batch Triage
 
 - [ ] Support triggering triage on multiple items sequentially
 - [ ] Estate detail: "Triage All Pending" button that processes untriaged items in queue
 - [ ] Progress indicator: "Triaging item 3 of 12..."
 
-### 4.11 Deliverable
+### 4.12 Deliverable
 
 Upload photos → AI analyzes them → results stream in real-time → item gets tier classification, identification, and valuation. Works with at least one AI provider (Anthropic Claude recommended as primary). **All provider, parsing, API, SSE, and component tests pass.**
 
@@ -561,19 +579,21 @@ Full item lifecycle: upload → triage → route → resolve. Operators can trac
 
 ---
 
-## Phase 6 — Settings & Cost Tracking
+## Phase 6 — Settings UI & Cost Tracking
 
-**Goal:** Operators configure AI providers, manage API keys, and monitor token spend.
+**Goal:** Full settings page UI and token usage dashboard. The app-level settings API and storage were built in Phase 4 — this phase adds the polished UI and cost tracking.
+
+> **Two-tier settings recap:** App-level settings (AI provider, model, API keys) live in the `app_settings` DB table and are shared across all users. User-level settings (profile, auth) are managed by Clerk via `<UserButton>`. See Phase 4.4 for details.
 
 ### 6.1 Settings Page (`/settings`)
 
-- [ ] **Provider Selection:** Toggle between Anthropic, OpenAI, Google
+- [ ] **Provider Selection:** Toggle between Anthropic, OpenAI, Google (reads/writes `app_settings` via API)
 - [ ] **Model Selection:** Dropdown of available models per provider (e.g., Claude Sonnet vs Opus, GPT-4o vs GPT-4o-mini, Gemini Flash vs Pro)
 - [ ] **API Key Management:**
   - Input field per provider (masked after save)
   - "Test Key" button — makes a minimal API call to verify the key works
-  - Keys encrypted at rest
-- [ ] **Account section:** Clerk UserButton, sign-out
+  - Keys encrypted at rest (encryption built in Phase 4)
+- [ ] **Info banner:** "These settings affect all users of this app." — to make the shared nature clear
 
 ### 6.2 Token Usage Dashboard
 
@@ -725,10 +745,9 @@ Phase 1 (Foundation + Test Infra)
                             └─▶ Phase 6 (Settings & Cost Tracking)*
                                   └─▶ Phase 7 (Polish & Production)
 
-* Settings page (Phase 6) can be partially built alongside Phase 4,
-  since AI provider config is needed for triage to work. The minimum
-  viable settings (provider + API key) should be built during Phase 4.
-  The full dashboard and cost tracking are Phase 6.
+* App-level settings storage and API are built in Phase 4 (required for
+  AI triage to work). Phase 6 adds the full settings page UI and cost
+  tracking dashboard. User-level settings are handled by Clerk.
 ```
 
 ---
