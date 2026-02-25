@@ -16,6 +16,8 @@ Next.js (App Router), Drizzle ORM, Neon Postgres, Clerk auth, Cloudflare R2, Ver
 npm run dev       # Start dev server
 npm run build     # Production build
 npm run lint      # ESLint
+npm run db:push   # Push schema to Neon
+npm run db:studio # Open Drizzle Studio
 ```
 
 ## Testing
@@ -29,7 +31,7 @@ npm run test:coverage # Coverage report
 npm run test:e2e      # Playwright E2E (Phase 7+)
 ```
 
-_(Test commands available after Phase 1 installs vitest.)_
+_(Playwright E2E wired up in Phase 7.)_
 
 ## Corrections
 
@@ -42,9 +44,13 @@ _(Test commands available after Phase 1 installs vitest.)_
 
 ## Build Progress
 
-Current phase: **1 — Foundation** (not started)
+Current phase: **2 — Estate CRUD** (not started)
 
-See `docs/BuildPlan.md` for the full phased plan.
+Phase 1 (Foundation) complete: Drizzle schema (3 tables, 3 enums), Neon HTTP client, Clerk auth middleware + ClerkProvider, vitest infrastructure with 35 passing tests. See `docs/BuildPlan.md` for details.
+
+### User setup required
+1. Create `.env.local` with `DATABASE_URL`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`
+2. Run `npm run db:push` to sync schema to Neon
 
 ## Phase Gate Protocol
 

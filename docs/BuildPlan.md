@@ -4,23 +4,22 @@
 
 ## Current State
 
-The codebase is a **styled shell**. What exists:
+The codebase has **foundation plumbing in place** (Phase 1 complete). What exists:
 
 - 7 page routes (all placeholder content, no real data or forms)
-- Shell component (mobile bottom nav + desktop sidebar)
+- Shell component (mobile bottom nav + desktop sidebar) with Clerk `<UserButton>`
 - Tailwind v4 dark theme with all brand tokens
-- Plus Jakarta Sans font
-- TypeScript strict mode, path aliases
+- Plus Jakarta Sans font, TypeScript strict mode, path aliases
+- **Database**: Drizzle ORM schema with 3 tables (estates, items, item_photos) and 3 enums, Neon HTTP client
+- **Authentication**: Clerk middleware protecting all routes, `<ClerkProvider>` with dark theme, sign-in/sign-up public routes
+- **Test infrastructure**: Vitest + jsdom + Testing Library, Clerk mocks, test factories, live DB helpers — 35 tests passing
 
-What does **not** exist:
+What does **not** exist yet:
 
-- Database (no schema, no Drizzle, no Neon connection)
-- Authentication (no Clerk)
 - API routes (zero)
 - Image storage (no R2 integration)
 - AI integration (no provider adapters)
-- Any business logic whatsoever
-- Any test infrastructure
+- Any business logic, forms, or real data flow
 
 ---
 
@@ -59,95 +58,60 @@ Each phase builds on the last. No phase should start until the previous phase is
 
 ### 1.1 Environment Setup
 
-- [ ] Create `.env.local` with placeholders for all service credentials
-- [ ] Create `.env.example` documenting every required variable
-- [ ] Variables needed:
-  - `DATABASE_URL` — Neon connection string
-  - `DATABASE_URL_TEST` — separate Neon branch or local Postgres for tests
-  - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
-  - `CLERK_SECRET_KEY`
-  - `CLOUDFLARE_R2_ACCOUNT_ID`
-  - `CLOUDFLARE_R2_ACCESS_KEY_ID`
-  - `CLOUDFLARE_R2_SECRET_ACCESS_KEY`
-  - `CLOUDFLARE_R2_BUCKET_NAME`
+- [x] Create `.env.example` documenting every required variable
+- [x] Add `!.env.example` to `.gitignore` so template is tracked
+- [x] Variables: `DATABASE_URL`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, R2 vars (commented out for Phase 3)
+
+> **Note:** Dropped `DATABASE_URL_TEST` — live DB tests use the same `DATABASE_URL` and truncate between runs. No `.env.local` created (user provides their own).
 
 ### 1.2 Test Infrastructure
 
-- [ ] Install test dependencies:
-  - `vitest` — test runner (fast, native ESM, great TS support)
-  - `@vitejs/plugin-react` — JSX transform for component tests
-  - `@testing-library/react` — component testing
-  - `@testing-library/user-event` — realistic user interactions
-  - `jsdom` — browser environment for component tests
-  - `msw` (Mock Service Worker) — API mocking for integration tests
-  - `playwright` — E2E browser testing (install later in Phase 7, configure now)
-- [ ] Create `vitest.config.ts`:
-  - Path aliases matching tsconfig (`@/*` → `./src/*`)
-  - `jsdom` environment for component tests
-  - Setup files for MSW and test utilities
-  - Coverage configuration (target: statements > 80% for `src/lib/`, `src/db/`, API routes)
-- [ ] Create `src/test/setup.ts` — global test setup (MSW server start/stop, cleanup)
-- [ ] Create `src/test/helpers.ts` — shared test utilities:
-  - `createTestDb()` — connect to test database, run migrations, return client
-  - `cleanDb()` — truncate all tables between tests
-  - `mockClerkUser()` — simulate authenticated user for API route tests
-  - `createTestEstate()` / `createTestItem()` — factory functions for test data
-- [ ] Add scripts to `package.json`:
-  - `test` — run vitest
-  - `test:watch` — run vitest in watch mode
-  - `test:coverage` — run with coverage report
-  - `test:ui` — vitest UI
-  - `test:e2e` — playwright (wired up in Phase 7)
-- [ ] Verify: `npm test` runs and passes (even with zero test files — no errors)
+- [x] Install vitest, @vitejs/plugin-react, @testing-library/react, @testing-library/dom, @testing-library/user-event, jsdom, msw, vite-tsconfig-paths
+- [x] Create `vitest.config.ts` with tsconfigPaths + react plugins, jsdom env, setup file, V8 coverage
+- [x] Create `src/test/setup.ts` — global Clerk mock, afterEach restoreAllMocks
+- [x] Create `src/test/helpers.ts` — `mockClerkUser()`, `createTestEstate()`, `createTestItem()`, `createTestItemPhoto()`, `resetFactoryCounter()`
+- [x] Create `src/test/db.ts` — `getTestDb()` and `cleanDb()` for live DB tests
+- [x] Add scripts: test, test:watch, test:coverage, test:ui, db:generate, db:migrate, db:push, db:studio
+- [x] Add `"types": ["vitest/globals"]` to tsconfig.json
+- [x] `npm test` passes
+
+> **Note:** Playwright deferred to Phase 7 as planned. MSW imported but not activated yet (Phase 2+).
 
 ### 1.3 Database
 
-- [ ] Install `drizzle-orm` and `@neondatabase/serverless`
-- [ ] Install `drizzle-kit` as dev dependency
-- [ ] Create `src/db/schema.ts` — define all three tables:
-  - **estates** — id (uuid), name, address, status (enum: active/resolving/closed), client_name, notes, user_id, created_at, updated_at
-  - **items** — id (uuid), estate_id (fk), tier (enum: 1/2/3/4, nullable), status (enum: pending/triaged/routed/resolved), ai_identification (jsonb), ai_valuation (jsonb), ai_raw_response (text), ai_provider, tokens_used, disposition, notes, created_at, updated_at
-  - **item_photos** — id (uuid), item_id (fk), r2_key, original_filename, mime_type, size_bytes, sort_order, created_at
-- [ ] Create `src/db/index.ts` — Drizzle client using Neon serverless driver
-- [ ] Create `drizzle.config.ts` for migrations
-- [ ] Run initial migration against Neon
-- [ ] Add `db:generate`, `db:migrate`, `db:push`, `db:studio` scripts to package.json
+- [x] Install `drizzle-orm`, `@neondatabase/serverless`, `drizzle-kit`
+- [x] Create `src/db/schema.ts` — 3 tables (estates, items, item_photos), 3 enums (estate_status, item_status, item_tier)
+- [x] Create `src/db/index.ts` — Neon HTTP driver + Drizzle client with relational schema
+- [x] Create `drizzle.config.ts`
+- [x] All 8 db scripts in package.json
+
+> **Note:** `drizzle-kit push` not run — requires user's DATABASE_URL. User runs `npm run db:push` after setting up `.env.local`.
 
 ### 1.4 Database Tests
 
-- [ ] `src/db/__tests__/schema.test.ts`:
-  - Schema exports all expected tables (estates, items, itemPhotos)
-  - Enum types have correct values (estate status, item status, tier)
-  - Required fields reject null (name, address, user_id)
-  - Default values work (created_at, updated_at, status defaults)
-  - Foreign keys enforce referential integrity (item → estate, photo → item)
-- [ ] `src/db/__tests__/queries.test.ts`:
-  - Insert and retrieve an estate
-  - Insert an item linked to an estate
-  - Insert a photo linked to an item
-  - Cascade behavior: deleting an estate handles child items appropriately
-  - Filtering: query estates by status, items by tier
+- [x] `src/db/__tests__/schema.test.ts` — 20 tests covering table structure, column counts, nullability, types, FK cascades, enum values (all pass, no DB needed)
+- [x] `src/db/__tests__/queries.test.ts` — 9 tests covering insert/retrieve, defaults, FK validation, cascade deletes, status/tier filtering (auto-skip without DATABASE_URL)
 
 ### 1.5 Authentication
 
-- [ ] Install `@clerk/nextjs`
-- [ ] Create `src/middleware.ts` — Clerk middleware protecting all routes except public ones
-- [ ] Wrap root layout with `<ClerkProvider>`
-- [ ] Add sign-in/sign-up redirect configuration
-- [ ] Add `<UserButton>` to the Shell sidebar/nav for account access
-- [ ] Verify: unauthenticated users are redirected to Clerk sign-in
+- [x] Install `@clerk/nextjs`, `@clerk/themes`
+- [x] Create `src/middleware.ts` — clerkMiddleware with public routes for sign-in/sign-up
+- [x] Wrap root layout with `<ClerkProvider appearance={{ baseTheme: dark }}>`
+- [x] Add `<UserButton>` to Shell: desktop sidebar (bottom, border-top section) and mobile nav (fourth item)
+- [x] `afterSignOutUrl="/sign-in"` on both UserButtons
+
+> **Note:** Next.js 16 shows deprecation warning about middleware → proxy convention. Middleware still works; we'll migrate in a future phase if needed.
 
 ### 1.6 Auth Tests
 
-- [ ] `src/middleware.test.ts`:
-  - Unauthenticated requests to protected routes return redirect
-  - Authenticated requests pass through
-  - Public routes (sign-in, sign-up) are accessible without auth
-- [ ] Test helper `mockClerkUser()` verified working — returns a mock user object that API routes can consume via `auth()`
+- [x] `src/middleware.test.ts` — 15 tests covering: config export, route matcher setup, public routes (sign-in, sign-up + subpaths), protected routes (/, /estates/*, /settings, /api/*)
 
 ### 1.7 Deliverable
 
-A deployed app where you can sign in, see the existing placeholder pages, and confirm the database connection works. Auth protects every route. **`npm test` passes with all schema and auth tests green.**
+- [x] `npm test` — **35 tests pass**, 9 skipped (live DB tests without DATABASE_URL)
+- [x] `npm run build` — clean production build, no errors
+- [ ] `npm run db:push` — **user action required** (set DATABASE_URL in .env.local first)
+- [ ] Manual verification: dev server redirects to Clerk sign-in, UserButton visible after auth
 
 ---
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Warehouse, Settings } from "lucide-react";
+import { UserButton } from "@clerk/nextjs";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -46,6 +47,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
+        <div className="border-t border-border px-4 py-3">
+          <UserButton afterSignOutUrl="/sign-in" />
+        </div>
       </aside>
 
       {/* Main content */}
@@ -68,6 +72,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </Link>
           );
         })}
+        <div className="flex flex-1 flex-col items-center justify-center py-3">
+          <UserButton afterSignOutUrl="/sign-in" />
+        </div>
       </nav>
     </div>
   );
