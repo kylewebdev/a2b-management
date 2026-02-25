@@ -94,6 +94,26 @@ export async function deleteFiles(r2Keys: string[]): Promise<void> {
   );
 }
 
+/** Download a file from R2 and return it as a Buffer. */
+export async function getFileBuffer(r2Key: string): Promise<Buffer> {
+  const client = getClient();
+  const response = await client.send(
+    new GetObjectCommand({ Bucket: getBucket(), Key: r2Key })
+  );
+
+  if (!response.Body) {
+    throw new Error(`Empty response body for key: ${r2Key}`);
+  }
+
+  // Convert readable stream to buffer
+  const chunks: Uint8Array[] = [];
+  const stream = response.Body as AsyncIterable<Uint8Array>;
+  for await (const chunk of stream) {
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
 /** Get a signed URL for viewing a file. Expires in 1 hour. */
 export async function getSignedViewUrl(r2Key: string): Promise<string> {
   const client = getClient();
