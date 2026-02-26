@@ -5,6 +5,7 @@ import { estates, items, itemPhotos, appSettings } from "@/db/schema";
 import { getAuthUserId, jsonError } from "@/lib/api";
 import { decrypt } from "@/lib/crypto";
 import { getFileBuffer } from "@/lib/r2";
+import { resizeForTriage } from "@/lib/image-resize";
 import { getProvider } from "@/lib/ai";
 import { parseTriageResult } from "@/lib/ai/parse-triage";
 import { createSSEStream, sseResponse } from "@/lib/sse";
@@ -93,13 +94,14 @@ export async function GET(_request: Request, { params }: Params) {
   // Run triage in background (don't await — we want to return the SSE response immediately)
   (async () => {
     try {
-      // Download photos from R2
+      // Download photos from R2 and resize for AI consumption
       const photoData = await Promise.all(
         photos.map(async (photo) => {
-          const buffer = await getFileBuffer(photo.r2Key);
+          const rawBuffer = await getFileBuffer(photo.r2Key);
+          const { buffer, mimeType } = await resizeForTriage(rawBuffer, photo.mimeType);
           return {
             base64: buffer.toString("base64"),
-            mimeType: photo.mimeType,
+            mimeType,
           };
         })
       );

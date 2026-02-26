@@ -13,6 +13,11 @@ vi.mock("@/lib/heic-convert", () => ({
   prepareFilesForUpload: vi.fn((files: File[]) => Promise.resolve(files)),
 }));
 
+// Mock image-compress — pass files through unchanged (no Canvas in jsdom)
+vi.mock("@/lib/image-compress", () => ({
+  compressImages: vi.fn((files: File[]) => Promise.resolve(files)),
+}));
+
 // Mock fetch
 const mockFetch = vi.fn();
 global.fetch = mockFetch;

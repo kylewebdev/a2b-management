@@ -60,6 +60,10 @@ vi.mock("@/lib/r2", () => ({
   getFileBuffer: vi.fn().mockResolvedValue(Buffer.from("fake-image-data")),
 }));
 
+vi.mock("@/lib/image-resize", () => ({
+  resizeForTriage: vi.fn(async (buffer: Buffer, mimeType: string) => ({ buffer, mimeType })),
+}));
+
 vi.mock("@/lib/ai", () => ({
   getProvider: vi.fn().mockReturnValue({
     name: "anthropic",

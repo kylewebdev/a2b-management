@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, X, Loader2, CheckCircle2, Upload } from "lucide-react";
 import { prepareFilesForUpload } from "@/lib/heic-convert";
+import { compressImages } from "@/lib/image-compress";
 import { MAX_PHOTOS } from "@/lib/validations/item";
 import { useToast } from "@/components/toast";
 
@@ -56,7 +57,9 @@ export function UploadForm({ estateId, estateName }: UploadFormProps) {
     setErrorMessage(null);
 
     try {
-      const prepared = await prepareFilesForUpload(files);
+      // Convert HEIC → JPEG, then compress all images for upload
+      const converted = await prepareFilesForUpload(files);
+      const prepared = await compressImages(converted);
 
       setUploadState("uploading");
 
