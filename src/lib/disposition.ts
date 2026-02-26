@@ -19,8 +19,8 @@ type ItemStatus = "pending" | "triaged" | "routed" | "resolved";
 export const VALID_ITEM_TRANSITIONS: Record<ItemStatus, ItemStatus[]> = {
   pending: ["triaged"],
   triaged: ["routed", "resolved"],
-  routed: ["resolved"],
-  resolved: [],
+  routed: ["resolved", "triaged"],
+  resolved: ["routed", "triaged"],
 };
 
 interface Valuation {

@@ -108,7 +108,7 @@ describe("PATCH /api/items/[id] — disposition logic", () => {
     expect(body.error).toMatch(/triage/i);
   });
 
-  it("allows clearing disposition (null) without status change", async () => {
+  it("allows clearing disposition (null) without status change when no status provided", async () => {
     await mockClerkUser("user_abc");
     mockItemSelect.mockResolvedValue([makeItem({ status: "resolved", disposition: "sold_onsite" })]);
     mockUpdateReturning.mockResolvedValue([makeItem({ status: "resolved", disposition: null })]);
@@ -118,9 +118,21 @@ describe("PATCH /api/items/[id] — disposition logic", () => {
     expect(mockUpdateSet).toHaveBeenCalledWith(
       expect.objectContaining({ disposition: null })
     );
-    // Should NOT include status in the update when clearing
+    // Should NOT include status in the update when no status specified
     const setCall = mockUpdateSet.mock.calls[0][0];
     expect(setCall.status).toBeUndefined();
+  });
+
+  it("allows clearing disposition and reverting status in one call", async () => {
+    await mockClerkUser("user_abc");
+    mockItemSelect.mockResolvedValue([makeItem({ status: "resolved", disposition: "sold_onsite" })]);
+    mockUpdateReturning.mockResolvedValue([makeItem({ status: "routed", disposition: null })]);
+
+    const res = await PATCH(patchRequest({ disposition: null, status: "routed" }), makeParams("item-1"));
+    expect(res.status).toBe(200);
+    expect(mockUpdateSet).toHaveBeenCalledWith(
+      expect.objectContaining({ disposition: null, status: "routed" })
+    );
   });
 
   it("rejects invalid disposition values", async () => {
@@ -160,12 +172,16 @@ describe("PATCH /api/items/[id] — status transitions", () => {
     expect(body.error).toMatch(/transition/i);
   });
 
-  it("rejects resolved → routed", async () => {
+  it("allows resolved → routed (undo)", async () => {
     await mockClerkUser("user_abc");
     mockItemSelect.mockResolvedValue([makeItem({ status: "resolved" })]);
+    mockUpdateReturning.mockResolvedValue([makeItem({ status: "routed" })]);
 
     const res = await PATCH(patchRequest({ status: "routed" }), makeParams("item-1"));
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(200);
+    expect(mockUpdateSet).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "routed" })
+    );
   });
 
   it("rejects status: resolved directly (must use disposition)", async () => {

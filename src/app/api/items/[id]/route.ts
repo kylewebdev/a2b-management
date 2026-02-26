@@ -98,8 +98,13 @@ export async function PATCH(request: Request, { params }: Params) {
         update.status = newStatus;
       }
     } else {
-      // Clearing disposition (null)
+      // Clearing disposition (null) — also revert status if resolved
       update.disposition = null;
+      if (currentStatus === "resolved" && parsed.data.status) {
+        if (isValidItemTransition(currentStatus, parsed.data.status)) {
+          update.status = parsed.data.status;
+        }
+      }
     }
   }
 

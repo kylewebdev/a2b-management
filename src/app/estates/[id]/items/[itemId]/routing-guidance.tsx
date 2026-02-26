@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle, Loader2 } from "lucide-react";
+import { CheckCircle, Loader2, Undo2 } from "lucide-react";
 import { getRoutingGuidance } from "@/lib/disposition";
+import { useToast } from "@/components/toast";
 
 const tierColors: Record<string, string> = {
   "1": "border-tier-1 bg-tier-1/10 text-tier-1",
@@ -21,6 +22,7 @@ interface RoutingGuidanceProps {
 
 export function RoutingGuidance({ itemId, status, tier, valuation }: RoutingGuidanceProps) {
   const router = useRouter();
+  const { addToast } = useToast();
   const [acknowledging, setAcknowledging] = useState(false);
 
   if (status === "pending") return null;
@@ -28,6 +30,7 @@ export function RoutingGuidance({ itemId, status, tier, valuation }: RoutingGuid
   const guidance = getRoutingGuidance(tier, valuation);
   const colorClass = tierColors[tier] ?? "border-border bg-surface text-text-secondary";
   const isAcknowledged = status === "routed" || status === "resolved";
+  const canUnacknowledge = status === "routed";
 
   async function handleAcknowledge() {
     setAcknowledging(true);
@@ -37,7 +40,24 @@ export function RoutingGuidance({ itemId, status, tier, valuation }: RoutingGuid
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "routed" }),
       });
-      if (res.ok) router.refresh();
+      if (res.ok) {
+        addToast({
+          type: "success",
+          message: "Routing acknowledged",
+          action: {
+            label: "Undo",
+            onClick: async () => {
+              const undoRes = await fetch(`/api/items/${itemId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "triaged" }),
+              });
+              if (undoRes.ok) router.refresh();
+            },
+          },
+        });
+        router.refresh();
+      }
     } finally {
       setAcknowledging(false);
     }
@@ -68,10 +88,28 @@ export function RoutingGuidance({ itemId, status, tier, valuation }: RoutingGuid
       )}
 
       {isAcknowledged && (
-        <p className="mt-2 flex items-center gap-1.5 text-xs text-text-muted">
-          <CheckCircle size={12} />
-          Routing acknowledged
-        </p>
+        <div className="mt-2 flex items-center gap-3">
+          <p className="flex items-center gap-1.5 text-xs text-text-muted">
+            <CheckCircle size={12} />
+            Routing acknowledged
+          </p>
+          {canUnacknowledge && (
+            <button
+              onClick={async () => {
+                const res = await fetch(`/api/items/${itemId}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ status: "triaged" }),
+                });
+                if (res.ok) router.refresh();
+              }}
+              className="flex items-center gap-1 text-xs text-text-muted hover:text-text-secondary"
+            >
+              <Undo2 size={10} />
+              Undo
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

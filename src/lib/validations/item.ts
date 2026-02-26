@@ -26,7 +26,7 @@ export const updateItemSchema = z.object({
     .nullable()
     .optional()
     .transform((v) => v || null),
-  status: z.enum(["routed"]).optional(),
+  status: z.enum(["routed", "triaged"]).optional(),
 });
 
 export type UpdateItemInput = z.infer<typeof updateItemSchema>;

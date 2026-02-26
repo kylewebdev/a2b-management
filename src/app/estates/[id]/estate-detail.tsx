@@ -135,13 +135,37 @@ export function EstateDetail({ estate, items = [], pendingItemIds = [], summary,
   }
 
   async function handleSwipeDisposition(itemId: string, disposition: Disposition) {
+    const item = allItems.find((i) => i.id === itemId);
+    const previousStatus = item?.status;
+    const previousDisposition = item?.disposition;
     const res = await fetch(`/api/items/${itemId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ disposition }),
     });
     if (res.ok) {
-      addToast({ type: "success", message: "Disposition set" });
+      addToast({
+        type: "success",
+        message: "Disposition set",
+        action: {
+          label: "Undo",
+          onClick: async () => {
+            const revertStatus = previousStatus === "triaged" || previousStatus === "routed"
+              ? previousStatus
+              : "routed";
+            const body: Record<string, unknown> = { disposition: previousDisposition ?? null };
+            if (previousStatus !== "resolved") {
+              body.status = revertStatus;
+            }
+            const undoRes = await fetch(`/api/items/${itemId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            });
+            if (undoRes.ok) router.refresh();
+          },
+        },
+      });
       router.refresh();
     } else {
       addToast({ type: "error", message: "Failed to set disposition" });

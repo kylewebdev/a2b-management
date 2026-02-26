@@ -33,12 +33,12 @@ describe("VALID_ITEM_TRANSITIONS", () => {
     expect(VALID_ITEM_TRANSITIONS.triaged).toEqual(["routed", "resolved"]);
   });
 
-  it("routed can transition to resolved", () => {
-    expect(VALID_ITEM_TRANSITIONS.routed).toEqual(["resolved"]);
+  it("routed can transition to resolved or triaged (undo)", () => {
+    expect(VALID_ITEM_TRANSITIONS.routed).toEqual(["resolved", "triaged"]);
   });
 
-  it("resolved has no transitions", () => {
-    expect(VALID_ITEM_TRANSITIONS.resolved).toEqual([]);
+  it("resolved can transition to routed or triaged (undo)", () => {
+    expect(VALID_ITEM_TRANSITIONS.resolved).toEqual(["routed", "triaged"]);
   });
 });
 
@@ -105,14 +105,18 @@ describe("isValidItemTransition", () => {
     expect(isValidItemTransition("pending", "resolved")).toBe(false);
   });
 
-  it("rejects resolved → anything", () => {
+  it("rejects resolved → pending", () => {
     expect(isValidItemTransition("resolved", "pending")).toBe(false);
-    expect(isValidItemTransition("resolved", "triaged")).toBe(false);
   });
 
-  it("rejects backwards transitions", () => {
+  it("allows undo transitions", () => {
+    expect(isValidItemTransition("resolved", "triaged")).toBe(true);
+    expect(isValidItemTransition("resolved", "routed")).toBe(true);
+    expect(isValidItemTransition("routed", "triaged")).toBe(true);
+  });
+
+  it("rejects backwards transition to pending", () => {
     expect(isValidItemTransition("triaged", "pending")).toBe(false);
-    expect(isValidItemTransition("routed", "triaged")).toBe(false);
   });
 });
 

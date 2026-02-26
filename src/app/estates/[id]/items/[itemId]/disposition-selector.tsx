@@ -26,18 +26,38 @@ export function DispositionSelector({ itemId, status, disposition }: Disposition
   }
 
   async function handleSelect(value: Disposition) {
+    const isDeselect = disposition === value;
+    const previousStatus = status;
     setSaving(value);
     try {
-      const res = await fetch(`/api/items/${itemId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ disposition: value }),
-      });
-      if (res.ok) {
-        addToast({ type: "success", message: `Disposition set: ${DISPOSITION_LABELS[value]}` });
-        router.refresh();
+      if (isDeselect) {
+        // Clear the disposition and revert status
+        const revertStatus = previousStatus === "resolved" ? "routed" : undefined;
+        const body: Record<string, unknown> = { disposition: null };
+        if (revertStatus) body.status = revertStatus;
+        const res = await fetch(`/api/items/${itemId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) {
+          addToast({ type: "success", message: "Disposition cleared" });
+          router.refresh();
+        } else {
+          addToast({ type: "error", message: "Failed to clear disposition" });
+        }
       } else {
-        addToast({ type: "error", message: "Failed to set disposition" });
+        const res = await fetch(`/api/items/${itemId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ disposition: value }),
+        });
+        if (res.ok) {
+          addToast({ type: "success", message: `Disposition set: ${DISPOSITION_LABELS[value]}` });
+          router.refresh();
+        } else {
+          addToast({ type: "error", message: "Failed to set disposition" });
+        }
       }
     } finally {
       setSaving(null);
