@@ -25,3 +25,60 @@ body {
   background: var(--color-bg);
   color: var(--color-text-primary);
 }
+
+/* ── Print styles for label sheets ────────────────────── */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Hide app shell */
+  aside,
+  nav {
+    display: none !important;
+  }
+
+  /* Hide non-printable UI */
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Label grid: 3 columns for Avery 5160 sheets */
+  [data-testid="labels-grid"] {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Individual label sizing (~2.625" x 1") */
+  [data-testid="item-label"] {
+    width: 2.625in;
+    height: 1in;
+    padding: 0.1in;
+    margin: 0;
+    border: 1px solid #ccc !important;
+    border-radius: 0 !important;
+    background: white !important;
+    break-inside: avoid;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  [data-testid="label-qr"] {
+    width: 0.75in !important;
+    height: 0.75in !important;
+  }
+
+  [data-testid="label-price"] {
+    color: black !important;
+    font-size: 14pt !important;
+  }
+
+  @page {
+    size: letter;
+    margin: 0.5in 0.1875in;
+  }
+}

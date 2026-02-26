@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { MapPin, Pencil, Trash2, Package, Camera, CheckCircle } from "lucide-react";
+import { MapPin, Pencil, Trash2, Package, Camera, CheckCircle, Tag } from "lucide-react";
 import { canCloseEstate, getCloseEstateStats } from "@/lib/estate-lifecycle";
 import { useToast } from "@/components/toast";
 import { StatusBadge } from "@/components/status-badge";
@@ -342,6 +342,15 @@ export function EstateDetail({ estate, items = [], pendingItemIds = [], summary,
           <div className="flex items-center gap-2">
             {estate.status === "active" && pendingItemIds.length > 0 && (
               <BatchTriage estateId={estate.id} pendingItemIds={pendingItemIds} />
+            )}
+            {estate.itemCount > 0 && (
+              <Link
+                href={`/estates/${estate.id}/labels`}
+                className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border px-3 py-1.5 min-h-[44px] text-sm text-text-secondary transition-colors hover:bg-surface-raised"
+              >
+                <Tag size={14} />
+                Labels
+              </Link>
             )}
             {estate.status === "active" && (
               <Link

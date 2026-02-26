@@ -34,6 +34,7 @@ const baseItem = {
   status: "pending" as const,
   notes: null,
   disposition: null,
+  salePrice: null,
   aiIdentification: null,
   aiValuation: null,
   photos: [

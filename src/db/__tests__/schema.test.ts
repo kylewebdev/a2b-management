@@ -103,8 +103,8 @@ describe("items table", () => {
     expect(config.name).toBe("items");
   });
 
-  it("has all 15 columns", () => {
-    expect(config.columns).toHaveLength(15);
+  it("has all 16 columns", () => {
+    expect(config.columns).toHaveLength(16);
   });
 
   it("tier is nullable", () => {

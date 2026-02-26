@@ -78,6 +78,7 @@ export default async function ItemDetailPage({
               sleeperAlert?: string | null;
               additionalPhotosRequested?: string[] | null;
             } | null,
+            salePrice: item.salePrice,
             photos: photosWithUrls,
           }}
         />
