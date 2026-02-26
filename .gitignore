@@ -43,3 +43,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# --- Added by create-ai-scaffold ---
+node_modules/
+dist/
+.env
+.env.*
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.log
