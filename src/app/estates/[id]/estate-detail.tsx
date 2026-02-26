@@ -38,11 +38,11 @@ interface ItemSummary {
   disposition: string | null;
 }
 
-const NEXT_STATUS: Record<string, { label: string; value: string } | null> = {
-  active: { label: "Start Resolving", value: "resolving" },
-  resolving: { label: "Close Estate", value: "closed" },
-  closed: null,
-};
+const STATUS_OPTIONS: { value: "active" | "resolving" | "closed"; label: string }[] = [
+  { value: "active", label: "Active" },
+  { value: "resolving", label: "Resolving" },
+  { value: "closed", label: "Closed" },
+];
 
 export function EstateDetail({ estate, items = [], pendingItemIds = [], summary, nextCursor }: { estate: Estate; items?: ItemSummary[]; pendingItemIds?: string[]; summary?: EstateSummary; nextCursor?: string | null }) {
   const router = useRouter();
@@ -82,18 +82,18 @@ export function EstateDetail({ estate, items = [], pendingItemIds = [], summary,
     }
   }
 
-  async function handleStatusAdvance() {
-    const next = NEXT_STATUS[estate.status];
-    if (!next) return;
-    if (!confirm(`${next.label}? This cannot be undone.`)) return;
+  async function handleStatusChange(newStatus: string) {
+    if (newStatus === estate.status) return;
+    const label = STATUS_OPTIONS.find((o) => o.value === newStatus)?.label ?? newStatus;
+    if (!confirm(`Change status to "${label}"?`)) return;
 
     const res = await fetch(`/api/estates/${estate.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: next.value }),
+      body: JSON.stringify({ status: newStatus }),
     });
     if (res.ok) {
-      addToast({ type: "success", message: `Estate ${next.value === "closed" ? "closed" : "status updated"}` });
+      addToast({ type: "success", message: "Estate status updated" });
       router.refresh();
     } else {
       addToast({ type: "error", message: "Failed to update status" });
@@ -173,7 +173,6 @@ export function EstateDetail({ estate, items = [], pendingItemIds = [], summary,
     }
   }
 
-  const nextStatus = NEXT_STATUS[estate.status];
   const allItems = [...items, ...moreItems];
 
   const showClosePrompt =
@@ -222,14 +221,19 @@ export function EstateDetail({ estate, items = [], pendingItemIds = [], summary,
             Edit
           </button>
 
-          {nextStatus && (
-            <button
-              onClick={handleStatusAdvance}
-              className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 min-h-[44px] text-sm font-medium text-bg transition-colors hover:bg-accent/90"
-            >
-              {nextStatus.label}
-            </button>
-          )}
+          <select
+            value={estate.status}
+            onChange={(e) => handleStatusChange(e.target.value)}
+            data-1p-ignore
+            aria-label="Estate status"
+            className="rounded-md border border-border bg-bg px-3 py-1.5 min-h-[44px] text-sm text-text-primary focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none"
+          >
+            {STATUS_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
 
           {estate.itemCount === 0 && (
             <button
@@ -326,7 +330,7 @@ export function EstateDetail({ estate, items = [], pendingItemIds = [], summary,
               </p>
             )}
             <button
-              onClick={handleStatusAdvance}
+              onClick={() => handleStatusChange("closed")}
               className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-bg transition-colors hover:bg-accent/90"
             >
               Close Estate

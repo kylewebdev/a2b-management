@@ -152,22 +152,40 @@ describe("PATCH /api/estates/[id]", () => {
     expect(res.status).toBe(200);
   });
 
-  it("rejects invalid transition active→closed", async () => {
+  it("allows transition active→closed", async () => {
     await mockClerkUser("user_abc");
     mockSelectResult.mockResolvedValue([ESTATE]);
+    mockUpdateResult.mockResolvedValue([{ ...ESTATE, status: "closed" }]);
 
     const res = await PATCH(patchRequest({ status: "closed" }), makeParams("uuid-1"));
-    expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toContain("Invalid status transition");
+    expect(res.status).toBe(200);
   });
 
-  it("rejects backward transition closed→active", async () => {
+  it("allows backward transition closed→active", async () => {
     await mockClerkUser("user_abc");
     mockSelectResult.mockResolvedValue([{ ...ESTATE, status: "closed" }]);
+    mockUpdateResult.mockResolvedValue([{ ...ESTATE, status: "active" }]);
 
     const res = await PATCH(patchRequest({ status: "active" }), makeParams("uuid-1"));
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(200);
+  });
+
+  it("allows backward transition closed→resolving", async () => {
+    await mockClerkUser("user_abc");
+    mockSelectResult.mockResolvedValue([{ ...ESTATE, status: "closed" }]);
+    mockUpdateResult.mockResolvedValue([{ ...ESTATE, status: "resolving" }]);
+
+    const res = await PATCH(patchRequest({ status: "resolving" }), makeParams("uuid-1"));
+    expect(res.status).toBe(200);
+  });
+
+  it("allows backward transition resolving→active", async () => {
+    await mockClerkUser("user_abc");
+    mockSelectResult.mockResolvedValue([{ ...ESTATE, status: "resolving" }]);
+    mockUpdateResult.mockResolvedValue([{ ...ESTATE, status: "active" }]);
+
+    const res = await PATCH(patchRequest({ status: "active" }), makeParams("uuid-1"));
+    expect(res.status).toBe(200);
   });
 
   it("returns 403 for non-owner", async () => {

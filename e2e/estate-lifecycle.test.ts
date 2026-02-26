@@ -34,13 +34,13 @@ test.describe("Estate Lifecycle", () => {
     await expect(page.getByText("Test Manor")).toBeVisible({ timeout: 10000 });
   });
 
-  test("can advance estate status", async ({ page }) => {
+  test("can change estate status via dropdown", async ({ page }) => {
     const { url } = await createEstate(page, { address: "400 Status St" });
     await page.goto(url);
     await expect(page.getByText("400 Status St")).toBeVisible({ timeout: 10000 });
 
     page.on("dialog", (dialog) => dialog.accept());
-    await page.getByRole("button", { name: "Start Resolving" }).click();
+    await page.getByLabel("Estate status").selectOption("resolving");
     await expect(page.getByText("Resolving")).toBeVisible({ timeout: 10000 });
   });
 
