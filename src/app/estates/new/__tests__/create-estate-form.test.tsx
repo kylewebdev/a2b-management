@@ -9,6 +9,13 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, refresh: vi.fn() }),
 }));
 
+// Mock AddressAutocomplete to plain input for unit tests
+vi.mock("@/components/address-autocomplete", () => ({
+  AddressAutocomplete: ({ name, id, placeholder, inputClassName }: any) => (
+    <input name={name} id={id} placeholder={placeholder} className={inputClassName} data-1p-ignore />
+  ),
+}));
+
 describe("CreateEstateForm", () => {
   beforeEach(() => {
     vi.clearAllMocks();

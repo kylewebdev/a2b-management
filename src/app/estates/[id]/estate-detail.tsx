@@ -14,6 +14,7 @@ import { BatchTriage } from "./batch-triage";
 import { EstateSummaryPanel } from "./estate-summary";
 import { ItemFilters } from "./item-filters";
 import type { EstateSummary } from "@/lib/estate-summary";
+import { AddressAutocomplete } from "@/components/address-autocomplete";
 
 interface Estate {
   id: string;
@@ -247,13 +248,11 @@ export function EstateDetail({ estate, items = [], pendingItemIds = [], summary,
           <div className="mt-4 space-y-3 rounded-lg border border-border bg-surface p-4" data-1p-ignore>
             <div>
               <label htmlFor="edit-address" className="block text-xs font-medium text-text-muted">Address</label>
-              <input
+              <AddressAutocomplete
                 id="edit-address"
                 value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                autoComplete="off"
-                data-1p-ignore
-                className="mt-1 block w-full rounded-md border border-border bg-bg px-3 py-1.5 text-sm text-text-primary focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none"
+                onChange={setAddress}
+                inputClassName="mt-1 block w-full rounded-md border border-border bg-bg px-3 py-1.5 text-sm text-text-primary focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none"
               />
             </div>
             <div>

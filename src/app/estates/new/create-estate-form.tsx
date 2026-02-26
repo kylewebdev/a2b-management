@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createEstateSchema } from "@/lib/validations/estate";
+import { AddressAutocomplete } from "@/components/address-autocomplete";
 
 interface FieldErrors {
   name?: string;
@@ -72,13 +73,11 @@ export function CreateEstateForm() {
         <label htmlFor="address" className="block text-sm font-medium text-text-primary">
           Address <span className="text-accent">*</span>
         </label>
-        <input
-          id="address"
+        <AddressAutocomplete
           name="address"
-          type="text"
-          data-1p-ignore
-          className="mt-1 block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none"
+          id="address"
           placeholder="e.g. 123 Main St, Springfield"
+          inputClassName="mt-1 block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none"
         />
         {errors.address && <p className="mt-1 text-sm text-red-400">{errors.address}</p>}
       </div>
