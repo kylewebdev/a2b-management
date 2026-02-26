@@ -1,4 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
+import path from "path";
+
+const authFile = path.join(__dirname, "e2e/.clerk-auth.json");
 
 export default defineConfig({
   testDir: "./e2e",
@@ -13,13 +16,30 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   projects: [
+    // Setup project — authenticates and saves state
     {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      name: "setup",
+      testMatch: /auth\.setup\.ts/,
+      use: { ...devices["Desktop Firefox"] },
     },
+    // Desktop browser
     {
-      name: "mobile-chrome",
-      use: { ...devices["Pixel 5"] },
+      name: "firefox",
+      use: {
+        ...devices["Desktop Firefox"],
+        storageState: authFile,
+      },
+      dependencies: ["setup"],
+    },
+    // Mobile viewport
+    {
+      name: "mobile",
+      use: {
+        ...devices["Desktop Firefox"],
+        viewport: { width: 393, height: 851 },
+        storageState: authFile,
+      },
+      dependencies: ["setup"],
     },
   ],
   webServer: {

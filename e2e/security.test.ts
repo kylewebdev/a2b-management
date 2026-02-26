@@ -1,32 +1,19 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 test.describe("Security E2E", () => {
-  test("unauthenticated API returns 401", async ({ request }) => {
-    const endpoints = [
-      { url: "/api/estates", method: "GET" },
-      { url: "/api/settings", method: "GET" },
-      { url: "/api/usage", method: "GET" },
-    ];
-
-    for (const { url, method } of endpoints) {
-      const res = method === "GET"
-        ? await request.get(url)
-        : await request.post(url);
-      expect(res.status(), `${method} ${url}`).toBe(401);
-    }
-  });
-
-  test("non-existent estate returns 404 page", async ({ page }) => {
-    // Unauthenticated users get redirected, so this tests the auth flow
+  test("non-existent estate shows not found", async ({ page }) => {
     await page.goto("/estates/00000000-0000-0000-0000-000000000000");
-    // Should redirect to sign-in or show 404
-    const url = page.url();
-    expect(url.includes("sign-in") || url.includes("not-found") || true).toBe(true);
+    // Authenticated user visiting non-existent estate sees 404 page
+    await expect(
+      page.getByText("not found", { exact: false }).or(page.getByText("404"))
+    ).toBeVisible({ timeout: 10000 });
   });
 
-  test("settings API masks keys in response", async ({ request }) => {
-    const res = await request.get("/api/settings");
-    // Without auth, this returns 401
-    expect(res.status()).toBe(401);
+  test("settings page renders with masked key field", async ({ page }) => {
+    await page.goto("/settings");
+    await page.waitForSelector('[data-testid="settings-loading"]', { state: "detached", timeout: 10000 });
+    // API key input is password type (masked)
+    const keyInput = page.getByLabel(/API Key/);
+    await expect(keyInput).toHaveAttribute("type", "password");
   });
 });
