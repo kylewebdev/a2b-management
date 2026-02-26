@@ -24,7 +24,7 @@ export default async function EstateDetailPage({
 
   const cursorDate = cursor ? parseCursor(cursor) : null;
 
-  const itemCountSq = sql<number>`(SELECT count(*)::int FROM ${items} WHERE ${items.estateId} = ${estates.id})`;
+  const itemCountSq = sql<number>`(SELECT count(*)::int FROM ${items} WHERE ${items.estateId} = ${id})`;
 
   const [estate] = await db
     .select({
