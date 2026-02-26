@@ -70,6 +70,7 @@ export const items = pgTable("items", {
   inputTokens: integer("input_tokens"),
   outputTokens: integer("output_tokens"),
   disposition: text(),
+  salePrice: integer("sale_price"),
   notes: text(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

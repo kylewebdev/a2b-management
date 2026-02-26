@@ -108,6 +108,14 @@ export async function PATCH(request: Request, { params }: Params) {
     }
   }
 
+  // Handle sale price
+  if (parsed.data.salePrice !== undefined) {
+    if (currentStatus === "pending") {
+      return jsonError("Item must be triaged before setting sale price", 400);
+    }
+    update.salePrice = parsed.data.salePrice;
+  }
+
   // Handle explicit status transition (only "routed" is accepted by schema)
   if (parsed.data.status) {
     if (!isValidItemTransition(currentStatus, parsed.data.status)) {
