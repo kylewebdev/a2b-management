@@ -7,9 +7,9 @@ import { parseUpdateEstate } from "@/lib/validations/estate";
 type Params = { params: Promise<{ id: string }> };
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  active: ["resolving"],
-  resolving: ["closed"],
-  closed: [],
+  active: ["resolving", "closed"],
+  resolving: ["active", "closed"],
+  closed: ["active", "resolving"],
 };
 
 export async function GET(_request: Request, { params }: Params) {
