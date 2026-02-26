@@ -72,8 +72,14 @@ export function UploadForm({ estateId, estateName }: UploadFormProps) {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Upload failed");
+        const text = await res.text();
+        let message: string;
+        try {
+          message = JSON.parse(text).error;
+        } catch {
+          message = `Server error ${res.status}`;
+        }
+        throw new Error(message);
       }
 
       setUploadState("success");

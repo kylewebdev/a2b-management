@@ -1,5 +1,3 @@
-import heic2any from "heic2any";
-
 const HEIC_MIME_TYPES = new Set(["image/heic", "image/heif"]);
 const HEIC_EXTENSIONS = new Set(["heic", "heif"]);
 
@@ -14,11 +12,26 @@ export function isHeicFile(file: File): boolean {
 
 /** Convert a HEIC/HEIF file to JPEG. */
 export async function convertHeicToJpeg(file: File): Promise<File> {
-  const blob = await heic2any({
-    blob: file,
-    toType: "image/jpeg",
-    quality: 0.9,
-  });
+  // Dynamic import — heic2any references `window` at module scope
+  const { default: heic2any } = await import("heic2any");
+
+  let blob: Blob | Blob[];
+  try {
+    blob = await heic2any({
+      blob: file,
+      toType: "image/jpeg",
+      quality: 0.9,
+    });
+  } catch (err: unknown) {
+    // heic2any throws a plain object {code:1, message:"ERR_USER ..."} when
+    // the file is already browser-readable (e.g. JPEG inside a .heic container).
+    if (typeof err === "object" && err !== null && (err as { code?: number }).code === 1) {
+      // File is already JPEG — re-wrap with correct MIME type and extension
+      const newName = file.name.replace(/\.[^.]+$/, ".jpg");
+      return new File([file], newName, { type: "image/jpeg" });
+    }
+    throw err instanceof Error ? err : new Error(String((err as { message?: string }).message ?? err));
+  }
 
   const result = Array.isArray(blob) ? blob[0] : blob;
   const newName = file.name.replace(/\.[^.]+$/, ".jpg");
@@ -27,7 +40,10 @@ export async function convertHeicToJpeg(file: File): Promise<File> {
 
 /** Prepare files for upload: convert HEIC to JPEG, pass others through. */
 export async function prepareFilesForUpload(files: File[]): Promise<File[]> {
-  return Promise.all(
-    files.map((file) => (isHeicFile(file) ? convertHeicToJpeg(file) : file))
-  );
+  // Sequential — heic2any is memory-heavy; parallel decodes crash mobile browsers
+  const results: File[] = [];
+  for (const file of files) {
+    results.push(isHeicFile(file) ? await convertHeicToJpeg(file) : file);
+  }
+  return results;
 }

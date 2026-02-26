@@ -149,7 +149,7 @@ describe("UploadForm", () => {
     const user = userEvent.setup();
     mockFetch.mockResolvedValue({
       ok: false,
-      json: () => Promise.resolve({ error: "Server error" }),
+      text: () => Promise.resolve(JSON.stringify({ error: "Server error" })),
     });
 
     render(<UploadForm estateId="e1" estateName="Test" />);

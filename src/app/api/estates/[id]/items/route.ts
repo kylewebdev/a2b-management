@@ -54,45 +54,50 @@ export async function POST(request: Request, { params }: Params) {
     }
   }
 
-  // Create item
-  const [item] = await db
-    .insert(items)
-    .values({ estateId })
-    .returning();
-
-  // Upload files and create photo records
-  const photoRecords = [];
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    const r2Key = generateR2Key(estateId, item.id, file.name);
-    const buffer = Buffer.from(await file.arrayBuffer());
-
-    await uploadFile(r2Key, buffer, file.type);
-
-    const [photo] = await db
-      .insert(itemPhotos)
-      .values({
-        itemId: item.id,
-        r2Key,
-        originalFilename: file.name,
-        mimeType: file.type,
-        sizeBytes: file.size,
-        sortOrder: i,
-      })
+  // Create item, upload to R2, and store photo records
+  try {
+    const [item] = await db
+      .insert(items)
+      .values({ estateId })
       .returning();
 
-    photoRecords.push(photo);
+    const photoRecords = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const r2Key = generateR2Key(estateId, item.id, file.name);
+      const buffer = Buffer.from(await file.arrayBuffer());
+
+      await uploadFile(r2Key, buffer, file.type);
+
+      const [photo] = await db
+        .insert(itemPhotos)
+        .values({
+          itemId: item.id,
+          r2Key,
+          originalFilename: file.name,
+          mimeType: file.type,
+          sizeBytes: file.size,
+          sortOrder: i,
+        })
+        .returning();
+
+      photoRecords.push(photo);
+    }
+
+    // Generate signed URLs for response
+    const photosWithUrls = await Promise.all(
+      photoRecords.map(async (photo) => ({
+        ...photo,
+        url: await getSignedViewUrl(photo.r2Key),
+      }))
+    );
+
+    return jsonSuccess({ ...item, photos: photosWithUrls }, 201);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Upload failed";
+    console.error("[POST /api/estates/[id]/items]", message);
+    return jsonError(message, 500);
   }
-
-  // Generate signed URLs for response
-  const photosWithUrls = await Promise.all(
-    photoRecords.map(async (photo) => ({
-      ...photo,
-      url: await getSignedViewUrl(photo.r2Key),
-    }))
-  );
-
-  return jsonSuccess({ ...item, photos: photosWithUrls }, 201);
 }
 
 export async function GET(request: Request, { params }: Params) {

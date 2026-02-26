@@ -64,11 +64,29 @@ describe("HEIC conversion", () => {
       });
     });
 
+    it("re-wraps as JPEG when heic2any reports already browser-readable", async () => {
+      const heicFile = makeFile("IMG_001.HEIC", "application/octet-stream");
+      vi.mocked(heic2any).mockRejectedValue({ code: 1, message: "ERR_USER Image is already browser readable: image/jpeg" });
+
+      const result = await convertHeicToJpeg(heicFile);
+
+      expect(result.name).toBe("IMG_001.jpg");
+      expect(result.type).toBe("image/jpeg");
+      expect(result.size).toBe(heicFile.size);
+    });
+
     it("handles conversion failure gracefully", async () => {
       const heicFile = makeFile("broken.HEIC", "image/heic");
       vi.mocked(heic2any).mockRejectedValue(new Error("Conversion failed"));
 
       await expect(convertHeicToJpeg(heicFile)).rejects.toThrow("Conversion failed");
+    });
+
+    it("wraps non-Error throws in an Error", async () => {
+      const heicFile = makeFile("broken.HEIC", "image/heic");
+      vi.mocked(heic2any).mockRejectedValue({ code: 2, message: "ERR_PARSE something" });
+
+      await expect(convertHeicToJpeg(heicFile)).rejects.toThrow("ERR_PARSE something");
     });
   });
 
