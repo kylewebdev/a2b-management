@@ -346,10 +346,10 @@ export function EstateDetail({ estate, items = [], pendingItemIds = [], summary,
             {estate.status === "active" && (
               <Link
                 href={`/estates/${estate.id}/upload`}
-                className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-bg transition-colors hover:bg-accent/90"
+                className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-bg transition-colors hover:bg-accent/90"
               >
                 <Camera size={14} />
-                Upload Photos
+                Upload
               </Link>
             )}
           </div>
@@ -416,7 +416,7 @@ export function EstateDetail({ estate, items = [], pendingItemIds = [], summary,
                 className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg transition-colors hover:bg-accent/90"
               >
                 <Camera size={14} />
-                Upload Photos
+                Upload
               </Link>
             )}
           </div>

@@ -35,7 +35,7 @@ describe("BatchTriage", () => {
 
     const btn = screen.getByTestId("batch-triage-button");
     expect(btn).toBeInTheDocument();
-    expect(btn).toHaveTextContent("Triage All Pending (3)");
+    expect(btn).toHaveTextContent("Triage All (3)");
   });
 
   it("renders nothing when no pending items", () => {

@@ -33,18 +33,18 @@ describe("EstateDetail items integration", () => {
     expect(screen.getByText("No items yet. Grab your camera.")).toBeInTheDocument();
   });
 
-  it("renders Upload Photos CTA for active estates", () => {
+  it("renders Upload CTA for active estates", () => {
     render(<EstateDetail estate={baseEstate} />);
-    const links = screen.getAllByRole("link", { name: /Upload Photos/ });
+    const links = screen.getAllByRole("link", { name: /Upload/ });
     expect(links.length).toBeGreaterThanOrEqual(1);
     expect(links[0]).toHaveAttribute("href", "/estates/estate-1/upload");
   });
 
-  it("hides Upload Photos CTA for closed estates", () => {
+  it("hides Upload CTA for closed estates", () => {
     render(
       <EstateDetail estate={{ ...baseEstate, status: "closed" }} items={[]} />
     );
-    expect(screen.queryByText("Upload Photos")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Upload/ })).not.toBeInTheDocument();
   });
 
   it("renders item cards when items exist", () => {

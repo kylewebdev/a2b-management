@@ -84,11 +84,11 @@ export function BatchTriage({ estateId, pendingItemIds }: BatchTriageProps) {
     return (
       <button
         onClick={runBatch}
-        className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-bg transition-colors hover:bg-accent/90"
+        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-accent px-3 py-1.5 text-sm font-medium text-accent transition-colors hover:bg-accent/10"
         data-testid="batch-triage-button"
       >
         <Sparkles size={14} />
-        Triage All Pending ({pendingItemIds.length})
+        Triage All ({pendingItemIds.length})
       </button>
     );
   }
