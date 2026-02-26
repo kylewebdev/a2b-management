@@ -108,7 +108,11 @@ export function EstateDetail({ estate, items = [], pendingItemIds = [], summary,
         addToast({ type: "success", message: "Estate deleted" });
         router.push("/estates");
       } else {
-        addToast({ type: "error", message: "Failed to delete estate" });
+        const body = await res.json().catch(() => null);
+        const message = body?.error === "Cannot delete estate with items"
+          ? "Delete all items first"
+          : "Failed to delete estate";
+        addToast({ type: "error", message });
       }
     } finally {
       setDeleting(false);

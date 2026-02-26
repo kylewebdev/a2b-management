@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, Loader2, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useToast } from "@/components/toast";
 import { TriageDisplay } from "./triage-display";
 import { RoutingGuidance } from "./routing-guidance";
 import { DispositionSelector } from "./disposition-selector";
@@ -37,6 +38,7 @@ interface Item {
 
 export function ItemDetail({ item }: { item: Item }) {
   const router = useRouter();
+  const { addToast } = useToast();
   const [selectedPhoto, setSelectedPhoto] = useState(0);
   const [notes, setNotes] = useState(item.notes ?? "");
   const [saving, setSaving] = useState(false);
@@ -48,7 +50,10 @@ export function ItemDetail({ item }: { item: Item }) {
     try {
       const res = await fetch(`/api/items/${item.id}`, { method: "DELETE" });
       if (res.ok) {
+        addToast({ type: "success", message: "Item deleted" });
         router.push(`/estates/${item.estateId}`);
+      } else {
+        addToast({ type: "error", message: "Failed to delete item" });
       }
     } finally {
       setDeleting(false);
@@ -63,7 +68,12 @@ export function ItemDetail({ item }: { item: Item }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notes: notes || null }),
       });
-      if (res.ok) router.refresh();
+      if (res.ok) {
+        addToast({ type: "success", message: "Notes saved" });
+        router.refresh();
+      } else {
+        addToast({ type: "error", message: "Failed to save notes" });
+      }
     } finally {
       setSaving(false);
     }

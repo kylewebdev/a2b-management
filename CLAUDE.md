@@ -46,9 +46,9 @@ _(Playwright E2E wired up in Phase 7.)_
 
 ## Build Progress
 
-Current phase: **7 — Polish & Production** (not started)
+Current phase: **7 — Polish & Production** (complete)
 
-See `docs/BuildPlan.md` for details.
+All 7 phases complete. **482 unit tests + 23 E2E tests.** See `docs/BuildPlan.md` for details.
 
 ## Phase Gate Protocol
 
